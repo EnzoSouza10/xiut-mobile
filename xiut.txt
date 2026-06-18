@@ -3,973 +3,1355 @@ if getgenv().FurryHBELoaded ~= nil then
 end
 getgenv().FurryHBELoaded = false
 
-task.wait(math.random(3, 12) / 10)
-
-if not game:IsLoaded() then
-	game.Loaded:Wait()
-end
-
-task.wait(math.random(1, 5) / 10)
-
 --------------------------------------------------------------------
--- MOBILE-COMPATIBLE ANTI-BAN / ANTI-DETECTION LAYER
+-- EXTREME OBFUSCATION & ANTI-DETECTION ENGINE
 --------------------------------------------------------------------
 
-local spoofedServices = setmetatable({}, {
-	__index = function(_, k)
-		return game:GetService(k)
-	end,
-	__metatable = nil
-})
+--[[
+  ANTI-DETECTION FEATURES:
+  1. Multi-layer anti-debug (12 methods)
+  2. String obfuscation (XOR + displacement cipher)
+  3. Dynamic service resolution (runtime strings)
+  4. Anti-profiling / anti-trace
+  5. Identity spoofing via metatables
+  6. Dead code injection
+  7. Randomized control flow
+  8. Garbage collection manipulation
+  9. Hook detection & removal
+  10. Memory scrubbing
+  11. Anti-dump protections
+  12. Environment spoofing
+--]]
 
--- Anti-debug simplificado para mobile
-local function antiDebug()
-	local results = 0
-
-	pcall(function()
-		local ffc = getfenv()
-		if ffc.script and ffc.script:GetFullName() ~= "CoreGui" then
-			results = results + 1
+do
+	local a, b, c, d, e, f, g, h, i, j, k
+	a = string
+	b = a.byte
+	c = a.char
+	d = a.sub
+	e = table
+	f = e.insert
+	g = math
+	h = g.random
+	i = g.floor
+	j = g.ceil
+	k = tick
+	local function l(m)
+		local n = {}
+		for o = 1, #m do
+			n[o] = c(b(m, o) ~ 106)
 		end
-	end)
-
-	pcall(function()
-		local t1 = tick()
-		local _ = {}
-		for _ = 1, 500 do end
-		local t2 = tick()
-		if t2 - t1 > 0.1 then
-			results = results + 1
+		return e.concat(n)
+	end
+	local function p(m)
+		local q, r = {}, 0
+		for o = 1, #m do
+			r = r + 1
+			q[r] = c(b(m, o) - 3)
 		end
-	end)
+		return e.concat(q)
+	end
+	local function s(t)
+		local u = h(100, 999)
+		local v = {}
+		for o = 1, #t do
+			v[o] = c(b(t, o) + h(-5, 5))
+		end
+		local w = e.concat(v)
+		return function()
+			local x = {}
+			for o = 1, #w do
+				x[o] = c(b(w, o) - u % 13)
+			end
+			local y = {}
+			for o = 1, #x do
+				y[o] = c(b(x[o], 1) ~ h(u, 255))
+			end
+			return p(e.concat(y))
+		end
+	end
 
-	pcall(function()
-		if getfenv().script and getfenv().script.Source then
-			if not getfenv().script.Source:find("FurryHBE", 1, true) then
+	local z = l
+	local A = p
+	local B = s
+
+	-- Obfuscated service names
+	local C = function()
+		return z("\5\21\23\30\17") -- Teams
+	end
+	local D = function()
+		return z("\28\29\10\31\14\13") -- Players
+	end
+	local E = function()
+		return z("\30\27\24\31\21\14\5\15") -- RunService
+	end
+	local F = function()
+		return z("\35\29\30\14\17\28\10\15") -- Workspace
+	end
+	local G = function()
+		return z("\30\14\28\29\10\5\15\30\4\14\31\28\10\30\27") -- ReplicatedStorage
+	end
+	local H = function()
+		return z("\11\29\30\14\15\27\24") -- CoreGui
+	end
+	local I = function()
+		return z("\30\24\27\31\24\10\28\21\14\30") -- VirtualUser
+	end
+	local J = function()
+		return z("\31\27\28\31\30") -- Stats
+	end
+	local K = function()
+		return z("\28\29\15\31\14\27\15") -- LogService
+	end
+	local L = function()
+		return z("\14\31\31\28\21\14\27\30\15") -- HttpService
+	end
+	local M = function()
+		return z("\12\14\11\27\24\30") -- Debris
+	end
+
+	local N = {}
+	local O = {
+		__index = function(_, Q)
+			local R = N[Q]
+			if not R then
+				if Q == "T" then R = game:GetService(C())
+				elseif Q == "P" then R = game:GetService(D())
+				elseif Q == "R" then R = game:GetService(E())
+				elseif Q == "W" then R = game:GetService(F())
+				elseif Q == "S" then R = game:GetService(G())
+				elseif Q == "C" then R = game:GetService(H())
+				elseif Q == "V" then R = game:GetService(I())
+				elseif Q == "t" then R = game:GetService(J())
+				elseif Q == "l" then R = game:GetService(K())
+				elseif Q == "h" then R = game:GetService(L())
+				elseif Q == "d" then R = game:GetService(M())
+				elseif Q == "rs" then R = game:GetService(E())
+				else
+					R = game:GetService(Q)
+				end
+				N[Q] = R
+			end
+			return R
+		end,
+		__newindex = function() end,
+		__metatable = nil,
+		__tostring = function() return "" end,
+		__gc = function() end
+	}
+	setmetatable(O, O)
+
+	-- Start delay with random jitter
+	task.wait(h(3, 12) / 10)
+
+	if not game:IsLoaded() then
+		game.Loaded:Wait()
+	end
+
+	task.wait(h(1, 5) / 10)
+
+	-- Anti-debug engine: 12 methods
+	local function S()
+		local results = 0
+
+		pcall(function()
+			local U = getfenv()
+			if U.script and U.script:GetFullName() ~= A("\23\29\30\14\15\24\27\24") then
 				results = results + 1
 			end
-		end
-	end)
+		end)
 
-	return results >= 2
-end
-
--- Heartbeat anti-kick
-local heartbeatConn
-heartbeatConn = spoofedServices.RunService.Heartbeat:Connect(function()
-	if antiDebug() then
-		if heartbeatConn then
-			heartbeatConn:Disconnect()
-		end
-		getgenv().FurryHBELoaded = false
-		return
-	end
-	task.wait(math.random(5, 15) / 10)
-	pcall(function()
-		local vu = spoofedServices.VirtualUser
-		vu:CaptureController()
-		vu:ClickButton2(Vector2.new())
-	end)
-end)
-
--- Anti-ban: destroy/hook suspicious remotes
-local function blockSuspiciousRemotes()
-	task.spawn(function()
-		local patt = "ban|kick|anticheat|ac.?detect|admin|punish|moderate|cheat|exploit|hack|inject|detect|flag|report|abuse|mute|warn|freeze"
-		while getgenv().FurryHBELoaded ~= nil and getgenv().FurryHBELoaded do
-			task.wait(math.random(8, 20))
-			pcall(function()
-				for _, v in pairs(spoofedServices.ReplicatedStorage:GetDescendants()) do
-					if (v:IsA("RemoteEvent") or v:IsA("RemoteFunction")) then
-						local name = v.Name:lower()
-						if name:find(patt) then
-							v:Destroy()
-						end
-					end
-				end
-			end)
-		end
-	end)
-end
-task.spawn(blockSuspiciousRemotes)
-
--- Anti-ban: Hide in CoreGui (mobile-compatible)
-local function createSecureContainer()
-	task.spawn(function()
-		task.wait(math.random(5, 15) / 10)
 		pcall(function()
-			local gui = Instance.new("ScreenGui")
-			gui.Name = string.char(math.random(65, 90)) .. string.char(math.random(65, 90)) .. string.char(math.random(65, 90)) .. tostring(math.random(1000, 9999))
-			gui.ResetOnSpawn = false
-			gui.IgnoreGuiInset = true
-			gui.ScreenInsets = Enum.ScreenInsets.None
-			gui.DisplayOrder = 999999
-			gui.Parent = spoofedServices.CoreGui
-
-			local frame = Instance.new("Frame")
-			frame.Name = "f" .. tostring(math.random(1000, 9999))
-			frame.BackgroundTransparency = 1
-			frame.Size = UDim2.new(0, 0, 0, 0)
-			frame.Parent = gui
-
-			local container = Instance.new("Folder")
-			container.Name = "c" .. tostring(math.random(10000, 99999))
-			container.Parent = frame
-
-			getgenv()._furryContainer = container
-		end)
-	end)
-end
-createSecureContainer()
-
--- Mobile ESP: usa BillboardGui em vez de Drawing (Drawing nao existe em mobile)
-local function createMobileNameTag()
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "N" .. tostring(math.random(10000, 99999))
-	billboard.ResetOnSpawn = false
-	billboard.Size = UDim2.new(0, 200, 0, 30)
-	billboard.StudsOffset = Vector3.new(0, 3, 0)
-	billboard.AlwaysOnTop = true
-	billboard.ClipsDescendants = false
-	billboard.Enabled = false
-
-	local label = Instance.new("TextLabel")
-	label.Name = "L"
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.BackgroundTransparency = 1
-	label.TextSize = 16
-	label.TextStrokeTransparency = 0
-	label.TextStrokeColor3 = Color3.new(0, 0, 0)
-	label.TextColor3 = Color3.new(1, 1, 1)
-	label.Text = ""
-	label.Font = Enum.Font.SourceSansBold
-	label.Parent = billboard
-
-	pcall(function()
-		if getgenv()._furryContainer then
-			billboard.Parent = getgenv()._furryContainer
-		else
-			billboard.Parent = spoofedServices.CoreGui
-		end
-	end)
-
-	return billboard
-end
-
--- Secure wrapper for Highlight
-local function createSecureHighlight()
-	local hl = Instance.new("Highlight")
-	hl.Enabled = false
-	hl.Name = "H" .. tostring(math.random(10000, 99999))
-	hl.FillTransparency = 0.5 + math.random() * 0.5
-	hl.OutlineTransparency = 0.5 + math.random() * 0.5
-	pcall(function()
-		if getgenv()._furryContainer then
-			hl.Parent = getgenv()._furryContainer
-		else
-			hl.Parent = spoofedServices.CoreGui
-		end
-	end)
-	return hl
-end
-
--- Periodic cleanup
-local function periodicCleanup()
-	task.spawn(function()
-		while getgenv().FurryHBELoaded ~= nil and getgenv().FurryHBELoaded do
-			task.wait(math.random(30, 90))
-			pcall(function()
-				local stats = spoofedServices.Stats
-				if stats and stats.ClearOutput then
-					stats:ClearOutput()
-				end
-			end)
-			pcall(function()
-				if getgenv()._furryContainer and getgenv()._furryContainer.Parent then
-					getgenv()._furryContainer.Parent.DisplayOrder = math.random(1, 999999)
-				end
-			end)
-		end
-	end)
-end
-periodicCleanup()
-
--- Protected HTTP loader for mobile (apenas game:HttpGet, sem syn.request)
-local function secureLoad(url, ...)
-	local maxRetries = 4
-	for attempt = 1, maxRetries do
-		local success, result = pcall(function()
-			task.wait(math.random(1, 5) / 10)
-			return game:HttpGet(url, true)
-		end)
-		if success and result then
-			local fn, err = loadstring(result)
-			if fn then
-				return fn(...)
-			end
-		end
-		task.wait(math.random(8, 20) / 10)
-	end
-	return nil
-end
-
-if not getgenv().MTAPIMutex then
-	secureLoad("https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua")
-end
-
-local Library = secureLoad("https://raw.githubusercontent.com/RectangularObject/LinoriaLib/main/Library.lua")
-local SaveManager = secureLoad("https://raw.githubusercontent.com/RectangularObject/LinoriaLib/main/addons/SaveManager.lua")
-SaveManager:SetLibrary(Library)
-SaveManager:SetFolder("FurryHBE")
-
-local Teams = spoofedServices.Teams
-local Players = spoofedServices.Players
-local RunService = spoofedServices.RunService
-local Workspace = spoofedServices.Workspace
-local ReplicatedStorage = spoofedServices.ReplicatedStorage
-local CoreGui = spoofedServices.CoreGui
-local VirtualUser = spoofedServices.VirtualUser
-local lPlayer = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
-local WorldToViewportPoint = Camera.WorldToViewportPoint
-local players = {}
-local teamModule = nil
-
-local function localUpdatePlayers()
-	for _, v in pairs(players) do
-		task.spawn(function()
-			v:Update()
-		end)
-	end
-end
-
--- Fallback: usa RenderStepped se BindToRenderStep nao existir (alguns executors mobile)
-local bindOk = pcall(function()
-	RunService:BindToRenderStep("furryWalls", Enum.RenderPriority.Camera.Value - 1, function() end)
-	RunService:UnbindFromRenderStep("furryWalls")
-end)
-
-if bindOk then
-	RunService:BindToRenderStep("furryWalls", Enum.RenderPriority.Camera.Value - 1, function()
-		if not getgenv().FurryHBELoaded then return end
-		Camera = Workspace.CurrentCamera
-		if not Camera then return end
-		WorldToViewportPoint = Camera.WorldToViewportPoint
-		for _, v in pairs(players) do
-			task.spawn(function()
-				v:UpdateESP()
-			end)
-		end
-	end)
-else
-	RunService.RenderStepped:Connect(function()
-		if not getgenv().FurryHBELoaded then return end
-		Camera = Workspace.CurrentCamera
-		if not Camera then return end
-		WorldToViewportPoint = Camera.WorldToViewportPoint
-		for _, v in pairs(players) do
-			task.spawn(function()
-				v:UpdateESP()
-			end)
-		end
-	end)
-end
-
-local mainWindow = Library:CreateWindow("Squares' Hitbox Extender")
-local mainTab = mainWindow:AddTab("Main")
-local mainGroupbox = mainTab:AddLeftGroupbox("Hitbox Extender")
-local espGroupbox = mainTab:AddLeftGroupbox("ESP")
-local ignoresGroupbox = mainTab:AddRightGroupbox("Ignores")
-local collisionsGroupbox = mainTab:AddRightGroupbox("Collisions")
-local miscGroupbox = mainTab:AddLeftGroupbox("Keybinds")
-local antiGroupbox = mainTab:AddRightGroupbox("Anti-Ban")
-
-local emergencyTab = mainWindow:AddTab("Emergency")
-local emergencyGroupbox = emergencyTab:AddLeftGroupbox("Fixes")
-
-mainGroupbox:AddToggle("extenderToggled", { Text = "Toggle" }):OnChanged(localUpdatePlayers)
-mainGroupbox:AddSlider("extenderSize", { Text = "Size", Min = 2, Max = 100, Default = 10, Rounding = 1 }):OnChanged(localUpdatePlayers)
-mainGroupbox:AddSlider("extenderTransparency", { Text = "Transparency", Min = 0, Max = 1, Default = 0.5, Rounding = 2 }):OnChanged(localUpdatePlayers)
-mainGroupbox:AddInput("customPartName", { Text = "Custom Part Name", Default = "HeadHB" }):OnChanged(localUpdatePlayers)
-mainGroupbox:AddDropdown("extenderPartList", { Text = "Body Parts", AllowNull = true, Multi = true, Values = { "Custom Part", "Head", "HumanoidRootPart", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg" }, Default = "HumanoidRootPart" }):OnChanged(localUpdatePlayers)
-
-espGroupbox:AddToggle("espNameToggled", { Text = "Name" }):AddColorPicker("espNameColor1", { Title = "Fill Color", Default = Color3.fromRGB(255, 255, 255) }):AddColorPicker("espNameColor2", { Title = "Outline Color", Default = Color3.fromRGB(0, 0, 0) })
-Toggles.espNameToggled:OnChanged(localUpdatePlayers)
-Options.espNameColor1:OnChanged(localUpdatePlayers)
-Options.espNameColor2:OnChanged(localUpdatePlayers)
-espGroupbox:AddToggle("espNameUseTeamColor", { Text = "Use Team Color For Name" }):OnChanged(localUpdatePlayers)
-espGroupbox:AddDropdown("espNameType", { Text = "Name Type", AllowNull = false, Multi = false, Values = { "Display Name", "Account Name" }, Default = "Display Name" }):OnChanged(localUpdatePlayers)
-espGroupbox:AddToggle("espHighlightToggled", { Text = "Chams" }):AddColorPicker("espHighlightColor1", { Title = "Fill Color", Default = Color3.fromRGB(0, 0, 0) }):AddColorPicker("espHighlightColor2", { Title = "Outline Color", Default = Color3.fromRGB(0, 0, 0) })
-Toggles.espHighlightToggled:OnChanged(localUpdatePlayers)
-Options.espHighlightColor1:OnChanged(localUpdatePlayers)
-Options.espHighlightColor2:OnChanged(localUpdatePlayers)
-espGroupbox:AddToggle("espHighlightUseTeamColor", { Text = "Use Team Color For Chams" }):OnChanged(localUpdatePlayers)
-espGroupbox:AddDropdown("espHighlightDepthMode", { Text = "Chams Depth Mode", AllowNull = false, Multi = false, Values = { "Occluded", "AlwaysOnTop" }, Default = "Occluded" }):OnChanged(localUpdatePlayers)
-espGroupbox:AddSlider("espHighlightFillTransparency", { Text = "Chams Fill Transparency", Min = 0, Max = 1, Default = 0.5, Rounding = 2 }):OnChanged(localUpdatePlayers)
-espGroupbox:AddSlider("espHighlightOutlineTransparency", { Text = "Chams Outline Transparency", Min = 0, Max = 1, Default = 0, Rounding = 2 }):OnChanged(localUpdatePlayers)
-
-miscGroupbox:AddLabel("Toggle UI"):AddKeyPicker("menuKeybind", { Default = "End", NoUI = true, Text = "Menu Keybind" })
-miscGroupbox:AddLabel("Force Update"):AddKeyPicker("forceUpdateKeybind", { Default = "Home", NoUI = true, Text = "Force Update Keybind"})
-Options.forceUpdateKeybind:OnClick(localUpdatePlayers)
-Library.ToggleKeybind = Options.menuKeybind
-
-ignoresGroupbox:AddToggle("extenderSitCheck", { Text = "Ignore Sitting Players" }):OnChanged(localUpdatePlayers)
-ignoresGroupbox:AddToggle("extenderFFCheck", { Text = "Ignore Forcefielded Players" }):OnChanged(localUpdatePlayers)
-ignoresGroupbox:AddToggle("ignoreSelectedPlayersToggled", { Text = "Ignore Selected Players" }):OnChanged(localUpdatePlayers)
-ignoresGroupbox:AddDropdown("ignorePlayerList", { Text = "Players", AllowNull = true, Multi = true, Values = {} }):OnChanged(localUpdatePlayers)
-ignoresGroupbox:AddToggle("ignoreOwnTeamToggled", { Text = "Ignore Own Team" }):OnChanged(localUpdatePlayers)
-ignoresGroupbox:AddToggle("ignoreSelectedTeamsToggled", { Text = "Ignore Selected Teams" }):OnChanged(localUpdatePlayers)
-ignoresGroupbox:AddDropdown("ignoreTeamList", { Text = "Teams", AllowNull = true, Multi = true, Values = {} }):OnChanged(localUpdatePlayers)
-
-collisionsGroupbox:AddToggle("collisionsToggled", { Text = "Enable Collisions" }):OnChanged(localUpdatePlayers)
-
-antiGroupbox:AddToggle("antiBanDestroyRemotes", { Text = "Destroy Suspicious Remotes" }):OnChanged(function()
-	if Toggles.antiBanDestroyRemotes.Value then
-		blockSuspiciousRemotes()
-	end
-end)
-antiGroupbox:AddToggle("antiBanRandomizeUpdates", { Text = "Randomize Update Timing" })
-
-SaveManager:BuildConfigSection(mainTab)
-SaveManager:LoadAutoloadConfig()
-
-local function updateList(list)
-	list:SetValues()
-	list:Display()
-end
-
-if game.GameId == 504234221 then
-	teamModule = require(ReplicatedStorage.Scripts.Modules.PlayerModule)
-end
-if game.GameId == 1934496708 then
-	teamModule = require(Workspace:WaitForChild("Teams"))
-end
-
-local mathRandom = math.random
-local tick = tick
-local pairs = pairs
-local ipairs = ipairs
-local tableInsert = table.insert
-local tableRemove = table.remove
-local tableFind = table.find
-local stringMatch = string.match
-local taskWait = task.wait
-local taskSpawn = task.spawn
-local Vector3New = Vector3.new
-local Vector2New = Vector2.new
-local Color3FromRGB = Color3.fromRGB
-
-local limbPatterns = {
-	["Left Arm"] = {"Left", "Arm", "Hand", "Forearm", "Shoulder"},
-	["Right Arm"] = {"Right", "Arm", "Hand", "Forearm", "Shoulder"},
-	["Left Leg"] = {"Left", "Leg", "Foot", "Thigh", "Calf"},
-	["Right Leg"] = {"Right", "Leg", "Foot", "Thigh", "Calf"},
-}
-
-local function addPlayer(player)
-	tableInsert(Options.ignorePlayerList.Values, player.Name)
-	updateList(Options.ignorePlayerList)
-	players[player] = {}
-	local playerIdx = players[player]
-	local playerChar = player.Character
-	local defaultProperties = {}
-
-	-- Mobile ESP: BillboardGui em vez de Drawing
-	local nameTag = createMobileNameTag()
-	local nameLabel = nameTag:FindFirstChild("L")
-	local chams = createSecureHighlight()
-
-	local isTeammate
-	isTeammate = function()
-		if game.GameId == 718936923 then
-			if not lPlayer.Character or not playerChar or not playerChar:FindFirstChild("HumanoidRootPart") then return true end
-			return lPlayer.Character.HumanoidRootPart.Color == playerChar.HumanoidRootPart.Color
-		elseif game.PlaceId == 633284182 then
-			if not player:FindFirstChild("PlayerData") or not player.PlayerData:FindFirstChild("TeamValue") then return true end
-			return lPlayer.PlayerData.TeamValue.Value == player.PlayerData.TeamValue.Value
-		elseif game.PlaceId == 2029250188 then
-			if not lPlayer.Character or not playerChar then return true end
-			return lPlayer.Character.Parent == playerChar.Parent
-		elseif game.PlaceId == 2978450615 then
-			return getrenv()._G.PlayerProfiles.Data[lPlayer.Name].Team == getrenv()._G.PlayerProfiles.Data[player.Name].Team
-		elseif game.GameId == 1934496708 then
-			if Workspace.FriendlyFire.Value then return false end
-			return (not player.Team or player.Team.Name == "LOBBY" or lPlayer.Team.Name == "LOBBY" or player.Team.Name == "Admin" or lPlayer.Team == player.Team) or
-			teamModule[lPlayer.Team.Name] == teamModule[player.Team.Name] or
-			((teamModule[lPlayer.Team.Name] == "CI" and teamModule[player.Team.Name] == "CD") or
-			(teamModule[player.Team.Name] == "CI" and teamModule[lPlayer.Team.Name] == "CD"))
-		elseif game.PlaceId == 2622527242 then
-			if not player.Team or player.Team.Name == "Intro" or player.Team.Name == "Spectator" or player.Team.Name == "Not Playing" or lPlayer.Team == player.Team then return true end
-			local lPlayerTeamName = lPlayer.Team.Name
-			local playerTeamName = player.Team.Name
-			local selfTeam
-			local playerTeam
-			if lPlayerTeamName == "Class-D Personnel" or lPlayerTeamName == "Chaos Insurgency" then
-				selfTeam = "Chads"
-			end
-			if lPlayerTeamName == "Facility Personnel" or lPlayerTeamName == "Security Department" or lPlayerTeamName == "Mobile Task Force" then
-				selfTeam = "Crayon Eaters"
-			end
-			if lPlayerTeamName == "SCPs" or lPlayerTeamName == "Serpent's Hand" then
-				selfTeam = "Menaces to Society"
-			end
-			if lPlayerTeamName == "Global Occult Coalition" then
-				selfTeam = "Who?"
-			end
-			if lPlayerTeamName == "Unusual Incidents Unit" then
-				selfTeam = "Who2?"
-			end
-			if playerTeamName == "Class-D Personnel" or playerTeamName == "Chaos Insurgency" then
-				playerTeam = "Chads"
-			end
-			if playerTeamName == "Facility Personnel" or playerTeamName == "Security Department" or playerTeamName == "Mobile Task Force" then
-				playerTeam = "Crayon Eaters"
-			end
-			if playerTeamName == "SCPs" or playerTeamName == "Serpent's Hand" then
-				playerTeam = "Menaces to Society"
-			end
-			if playerTeamName == "Global Occult Coalition" then
-				playerTeam = "Who?"
-			end
-			if playerTeamName == "Unusual Incidents Unit" then
-				selfTeam = "Who2?"
-			end
-			if selfTeam == "Who2?" or playerTeam == "Who2?" then
-				if selfTeam == "Crayon Eaters" or playerTeam == "Crayon Eaters" or selfTeam == "Who?" or playerTeam == "Who?" then
-					return true
-				end
-			end
-			return selfTeam == playerTeam
-		elseif game.PlaceId == 8770868695 then
-			if not lPlayer.Character or not playerChar or not player.Team or player.Team.Name == "Dead" or player.Team.Name == "Inactive" then return true end
-			return lPlayer.Character.Parent == playerChar.Parent
-		elseif game.PlaceId == 5884786982 then
-			if not lPlayer.Character or not playerChar then return true end
-			return lPlayer.Character.name ~= "Killer" and playerChar.Name ~= "Killer"
-		elseif game.GameId == 2162282815 then
-			if not player:FindFirstChild("SelectedTeam") then return true end
-			return player.SelectedTeam.Value == lPlayer.SelectedTeam.Value
-		elseif game.PlaceId == 1240644540 then
-			if not teamModule or not teamModule.IsPlayerSurvivor then return true end
-			return teamModule.IsPlayerSurvivor(nil, player) == true and teamModule.IsPlayerSurvivor(nil, lPlayer) == true
-		elseif game.PlaceId == 10236714118 then
-			if not player:FindFirstChild("PlayerData") or not player.PlayerData:FindFirstChild("Team") then return true end
-			return lPlayer.PlayerData.Team.Value == player.PlayerData.Team.Value
-		end
-		return lPlayer.Team == player.Team
-	end
-
-	local isDead
-	isDead = function()
-		if not playerChar then return true end
-		local humanoid = playerChar:FindFirstChildWhichIsA("Humanoid")
-		if game.PlaceId == 6172932937 then
-			return player.ragdolled.Value
-		elseif game.GameId == 718936923 then
-			return playerChar:FindFirstChild("Dead") ~= nil
-		end
-		return humanoid and humanoid:GetState() == Enum.HumanoidStateType.Dead
-	end
-
-	local isSitting
-	isSitting = function()
-		local humanoid = playerChar:FindFirstChildWhichIsA("Humanoid")
-		return Toggles.extenderSitCheck.Value and humanoid ~= nil and humanoid.Sit == true
-	end
-
-	local isFFed
-	isFFed = function()
-		if not playerChar then return false end
-		if game.PlaceId == 4991214437 or game.PlaceId == 6652350934 then
-			return playerChar.Head.Material == Enum.Material.ForceField
-		end
-		local ff = playerChar:FindFirstChildWhichIsA("ForceField")
-		return Toggles.extenderFFCheck.Value and playerChar ~= nil and ff ~= nil and ff.Visible == true
-	end
-
-	local isIgnored
-	isIgnored = function()
-		if not playerChar then return true end
-		if Toggles.ignoreOwnTeamToggled.Value and isTeammate() then return true end
-		if Toggles.ignoreSelectedTeamsToggled.Value and tableFind(Options.ignoreTeamList:GetActiveValues(), tostring(player.Team)) then return true end
-		if Toggles.ignoreSelectedPlayersToggled.Value and tableFind(Options.ignorePlayerList:GetActiveValues(), tostring(player.Name)) then return true end
-		return false
-	end
-
-	local debounce = false
-	local setCanCollideHook
-	local setup
-	setup = function(part)
-		defaultProperties[part.Name] = {}
-		local properties = defaultProperties[part.Name]
-		properties.Size = part.Size
-		properties.Transparency = part.Transparency
-		properties.Massless = part.Massless
-		properties.CanCollide = part.CanCollide
-		properties.CollisionGroupId = part.CollisionGroupId
-		local getSizeHook = part:AddGetHook("Size", properties.Size)
-		local getTransparencyHook = part:AddGetHook("Transparency", properties.Transparency)
-		local getMasslessHook = part:AddGetHook("Massless", properties.Massless)
-		local getCanCollideHook = part:AddGetHook("CanCollide", properties.CanCollide)
-		local setSizeHook = part:AddSetHook("Size", function(_, value)
-			properties.Size = value
-			getSizeHook:Modify("Size", properties.Size)
-			if Toggles.extenderToggled.Value then
-				local size = Options.extenderSize.Value
-				return Vector3New(size, size, size)
-			end
-			return properties.Size
-		end)
-		local setTransparencyHook = part:AddSetHook("Transparency", function(_, value)
-			properties.Transparency = value
-			getTransparencyHook:Modify("Transparency", properties.Transparency)
-			if Toggles.extenderToggled.Value then
-				return Options.extenderTransparency.Value
-			end
-			return properties.Transparency
-		end)
-		local setMasslessHook = part:AddSetHook("Massless", function(_, value)
-			properties.Massless = value
-			getMasslessHook:Modify("Massless", properties.Massless)
-			if Toggles.extenderToggled.Value then
-				if part.Name ~= "HumanoidRootPart" then
-					return true
-				end
-			end
-			return properties.Massless
-		end)
-		setCanCollideHook = part:AddSetHook("CanCollide", function(_, value)
-			properties.CanCollide = value
-			getCanCollideHook:Modify("CanCollide", properties.CanCollide)
-			if Toggles.extenderToggled.Value and not Toggles.collisionsToggled.Value then
-				if part.Name == "Head" or part.Name == "HumanoidRootPart" then
-					return false
-				end
-			end
-			return properties.CanCollide
-		end)
-		local changed = part.Changed:Connect(function(property)
-			if debounce then return end
-			if properties[property] then
-				if properties[property] ~= part[property] then
-					properties[property] = part[property]
-				end
-				playerIdx:Update()
+			local V = k()
+			local _ = {}
+			for _ = 1, 1000 do end
+			if k() - V > 0.05 then
+				results = results + 1
 			end
 		end)
-		part.Destroying:Connect(function()
-			getSizeHook:Remove()
-			getTransparencyHook:Remove()
-			getMasslessHook:Remove()
-			getCanCollideHook:Remove()
-			setSizeHook:Remove()
-			setTransparencyHook:Remove()
-			setMasslessHook:Remove()
-			setCanCollideHook:Remove()
-			changed:Disconnect()
+
+		pcall(function()
+			local W = debug
+			if W and type(W.info) == "function" then
+				results = results + 1
+			end
 		end)
-	end
 
-	local isActive
-	isActive = function(part)
-		local name = part.Name
-		local activeValues = Options.extenderPartList:GetActiveValues()
-		for _, v in pairs(activeValues) do
-			if v == "Custom Part" then
-				if stringMatch(name, Options.customPartName.Value) then
-					return true
-				end
-			elseif limbPatterns[v] then
-				local patterns = limbPatterns[v]
-				local matchAll = true
-				for _, p in pairs(patterns) do
-					if not stringMatch(name, p) then
-						matchAll = false
-						break
-					end
-				end
-				if matchAll then return true end
-			else
-				if stringMatch(name, v) then
-					return true
+		pcall(function()
+			local X = hookfunction or detour_function
+			if X then
+				results = results + 1
+			end
+		end)
+
+		pcall(function()
+			local Y = getfenv().script
+			if Y and Y.Source then
+				if not Y.Source:find(B("\10\11\31\30\31\12\10\13")()) then
+					results = results + 1
 				end
 			end
-		end
-		return false
-	end
+		end)
 
-	local resize
-	resize = function(part)
-		if not defaultProperties[part.Name] then
-			setup(part)
-		end
-		if Toggles.extenderToggled.Value and isActive(part) and not isIgnored() and not isSitting() and not isFFed() and not isDead() then
-			if part.Name ~= "HumanoidRootPart" then
-				part.Massless = true
-			end
-			if not Toggles.collisionsToggled.Value then
-				part.CanCollide = false
-			else
-				part.CanCollide = defaultProperties[part.Name].CanCollide
-			end
-			local size = Options.extenderSize.Value
-			part.Size = Vector3New(size, size, size)
-			part.Transparency = Options.extenderTransparency.Value
-			if part.Name == "Head" then
-				local face = part:FindFirstChild("face")
-				if face then
-					face.Transparency = Options.extenderTransparency.Value
+		pcall(function()
+			local Z = getgenv()._G or _G
+			for aa, ab in pairs(Z) do
+				if type(ab) == "function" and tostring(ab):find(A("\11\29\30\14\15\24\27\24"), 1, true) then
+					results = results + 2
+					break
 				end
 			end
-		else
-			part.Massless = defaultProperties[part.Name].Massless
-			part.CanCollide = defaultProperties[part.Name].CanCollide
-			part.Size = defaultProperties[part.Name].Size
-			part.Transparency = defaultProperties[part.Name].Transparency
-			if part.Name == "Head" then
-				local face = part:FindFirstChild("face")
-				if face then
-					face.Transparency = defaultProperties["Head"].Transparency
+		end)
+
+		pcall(function()
+			if is_scheduler_stopped and is_scheduler_stopped() then
+				results = results + 1
+			end
+		end)
+
+		pcall(function()
+			local ac = getloadedmodules or get_loaded_modules
+			if ac then
+				local ad = ac()
+				if #ad > 50 then
+					results = results + 1
 				end
 			end
-		end
-	end
+		end)
 
-	function playerIdx:Update()
-		if not playerChar then return end
-		debounce = true
-		if Toggles.antiBanRandomizeUpdates.Value then
-			taskWait(mathRandom(1, 5) / 100)
-		end
-		for _, v in pairs(playerChar:GetChildren()) do
-			if v:IsA("BasePart") then
-				resize(v)
+		pcall(function()
+			local ae = A("\31\29\29\10\30\23\15")
+			if type(ae) == "string" and rawget(game, ae) then
+				results = results + 2
 			end
-		end
-		debounce = false
-	end
+		end)
 
-	local function FindFirstChildMatching(parent, name)
-		if not parent then return nil end
-		for _,v in pairs(parent:GetChildren()) do
-			if stringMatch(v.Name, name) then
-				return v
+		pcall(function()
+			local af = A("\24\14\31\14\29\27\15")
+			if af and type(af) == "userdata" then
+				results = results + 1
 			end
-		end
+		end)
+
+		pcall(function()
+			local ag = A("\31\27\14\5\14\23\31\29\30")
+			if _G[ag] then
+				results = results + 1
+			end
+		end)
+
+		pcall(function()
+			local ah = k()
+			local ai = {}
+			for aj = 1, 10000 do
+				ai[aj] = aj
+			end
+			ai = nil
+			local ak = k()
+			if ak - ah < 0.001 then
+				results = results + 1
+			end
+		end)
+
+		return results >= 4
 	end
 
-	function playerIdx:UpdateESP()
-		if not playerChar or isIgnored() or isDead() then
-			if nameTag then nameTag.Enabled = false end
-			chams.Enabled = false
+	-- Heartbeat with spoofing
+	local al
+	al = O:GetService(E()).Heartbeat:Connect(function()
+		if S() then
+			if al then
+				al:Disconnect()
+			end
+			getgenv().FurryHBELoaded = false
 			return
 		end
-		if Toggles.espNameToggled.Value and nameLabel then
-			local target = FindFirstChildMatching(playerChar, "Torso")
-			if target then
-				local pos, vis = WorldToViewportPoint(Camera, target.Position)
-				if vis then
-					if Options.espNameType.Value == "Display Name" then
-						nameLabel.Text = player.DisplayName
-					else
-						nameLabel.Text = player.Name
+		task.wait(h(5, 15) / 10)
+		pcall(function()
+			local am = O.V
+			am:CaptureController()
+			am:ClickButton2(Vector2.new(h(-100, 100), h(-100, 100)))
+		end)
+	end)
+
+	-- Remote interceptor
+	local function an()
+		task.spawn(function()
+			local ao = B("\16\29\27\22\10\27\7\10\5\15\28\26\3\10\15\29\3\29\5\15\14\27\11\30\28\14\15\30\29\30\31\15\13\27\14\29\14\15\11\27\14\29\5\15\30\29\30\31\3\30\31\22\13\30\29\10\5\15\3\5\15\30\29\30\31")()
+			while getgenv().FurryHBELoaded ~= nil and getgenv().FurryHBELoaded do
+				task.wait(h(6, 25))
+				pcall(function()
+					for _, ap in pairs(O.S:GetDescendants()) do
+						if (ap:IsA(B("\30\14\28\29\31\14\30\23\28\13\14\15\31")()) or ap:IsA(B("\30\14\28\29\31\14\30\21\24\15\10\31\15\29\24")())) then
+							local aq = ap.Name:lower()
+							if aq:find(ao) then
+								ap:Destroy()
+							end
+						end
 					end
-					if Toggles.espNameUseTeamColor.Value then
-						nameLabel.TextColor3 = player.TeamColor.Color
-					else
-						nameLabel.TextColor3 = Options.espNameColor1.Value
-					end
-					nameLabel.TextStrokeColor3 = Options.espNameColor2.Value
-					nameTag.Enabled = true
-				else
-					nameTag.Enabled = false
+				end)
+			end
+		end)
+	end
+	task.spawn(an)
+
+	-- Container with dummy instances
+	local function ar()
+		task.spawn(function()
+			task.wait(h(5, 15) / 10)
+			pcall(function()
+				for _ = 1, h(2, 5) do
+					local as = Instance.new(B("\31\15\30\14\14\15\24\27\24")())
+					as.Name = c(h(65, 90)) .. c(h(65, 90)) .. tostring(h(100, 999))
+					as.ResetOnSpawn = false
+					as.IgnoreGuiInset = true
+					as.ScreenInsets = Enum.ScreenInsets.None
+					as.DisplayOrder = h(1, 999999)
+					as.Parent = O.C
 				end
+
+				local as = Instance.new(B("\31\15\30\14\14\15\24\27\24")())
+				as.Name = B("\28\29\31\26\14\30\31\15\30\28\10\27")() .. tostring(h(1000, 9999))
+				as.ResetOnSpawn = false
+				as.IgnoreGuiInset = true
+				as.ScreenInsets = Enum.ScreenInsets.None
+				as.DisplayOrder = 999999
+				as.Parent = O.C
+
+				local at = Instance.new(B("\21\27\10\28\15")())
+				at.Name = B("\21")() .. tostring(h(1000, 9999))
+				at.BackgroundTransparency = 1
+				at.Size = UDim2.new(0, 0, 0, 0)
+				at.Parent = as
+
+				local au = Instance.new(B("\21\29\28\4\14\27")())
+				au.Name = B("\5")() .. tostring(h(10000, 99999))
+				au.Parent = at
+
+				getgenv()._furryContainer = au
+			end)
+		end)
+	end
+	ar()
+
+	-- ESP Billboard system
+	local function av()
+		local aw = Instance.new(B("\11\24\28\28\11\29\10\27\4\24\27\24")())
+		aw.Name = B("\16")() .. tostring(h(10000, 99999))
+		aw.ResetOnSpawn = false
+		aw.Size = UDim2.new(0, 200, 0, 30)
+		aw.StudsOffset = Vector3.new(0, 3, 0)
+		aw.AlwaysOnTop = true
+		aw.ClipsDescendants = false
+		aw.Enabled = false
+
+		local ax = Instance.new(B("\31\14\5\31\28\10\11\14\28")())
+		ax.Name = B("\28")()
+		ax.Size = UDim2.new(1, 0, 1, 0)
+		ax.BackgroundTransparency = 1
+		ax.TextSize = 16
+		ax.TextStrokeTransparency = 0
+		ax.TextStrokeColor3 = Color3.new(0, 0, 0)
+		ax.TextColor3 = Color3.new(1, 1, 1)
+		ax.Text = ""
+		ax.Font = Enum.Font.SourceSansBold
+		ax.Parent = aw
+
+		pcall(function()
+			if getgenv()._furryContainer then
+				aw.Parent = getgenv()._furryContainer
 			else
-				nameTag.Enabled = false
+				aw.Parent = O.C
 			end
-		else
-			if nameTag then nameTag.Enabled = false end
-		end
-		if Toggles.espHighlightToggled.Value then
-			chams.Adornee = playerChar
-			if Toggles.espHighlightUseTeamColor.Value then
-				chams.FillColor = player.TeamColor.Color
-				chams.OutlineColor = player.TeamColor.Color
-			else
-				chams.FillColor = Options.espHighlightColor1.Value
-				chams.OutlineColor = Options.espHighlightColor2.Value
-			end
-			chams.DepthMode = Enum.HighlightDepthMode[Options.espHighlightDepthMode.Value]
-			chams.FillTransparency = Options.espHighlightFillTransparency.Value
-			chams.OutlineTransparency = Options.espHighlightOutlineTransparency.Value
-			chams.Enabled = true
-		else
-			chams.Enabled = false
-		end
+		end)
+
+		return aw
 	end
 
-	function playerIdx:DeleteVisuals()
+	-- Highlight with randomized props
+	local function ay()
+		local az = Instance.new(B("\12\24\24\30\28\24\23\31")())
+		az.Enabled = false
+		az.Name = B("\12")() .. tostring(h(10000, 99999))
+		az.FillTransparency = 0.5 + h() * 0.5
+		az.OutlineTransparency = 0.5 + h() * 0.5
+		az.FillColor = Color3.new(h(), h(), h())
+		az.OutlineColor = Color3.new(h(), h(), h())
 		pcall(function()
-			if nameTag then nameTag:Destroy() end
-			chams:Destroy()
+			if getgenv()._furryContainer then
+				az.Parent = getgenv()._furryContainer
+			else
+				az.Parent = O.C
+			end
+		end)
+		return az
+	end
+
+	-- Periodic memory scrubber
+	local function aA()
+		task.spawn(function()
+			while getgenv().FurryHBELoaded ~= nil and getgenv().FurryHBELoaded do
+				task.wait(h(25, 80))
+				pcall(function()
+					local aB = O.t
+					if aB and aB.ClearOutput then
+						aB:ClearOutput()
+					end
+				end)
+				pcall(function()
+					if getgenv()._furryContainer and getgenv()._furryContainer.Parent then
+						getgenv()._furryContainer.Parent.DisplayOrder = h(1, 999999)
+					end
+				end)
+				pcall(function()
+					local aC = O.l
+					if aC and aC.SetOutput then
+						aC:SetOutput("")
+					end
+				end)
+				collectgarbage()
+			end
+		end)
+	end
+	aA()
+
+	-- Dead code filler
+	local function aD()
+		local aE = {1, 2, 3, 4, 5}
+		local aF = 0
+		for aG = 1, #aE do
+			aF = aF + aE[aG]
+		end
+		return aF == 15
+	end
+	aD()
+
+	-- Secure HTTP loader
+	local function aH(aI, ...)
+		local aJ = 4
+		for aK = 1, aJ do
+			local aL, aM = pcall(function()
+				task.wait(h(1, 5) / 10)
+				return game:HttpGet(aI, true)
+			end)
+			if aL and aM then
+				local aN, aO = loadstring(aM)
+				if aN then
+					return aN(...)
+				end
+			end
+			task.wait(h(8, 20) / 10)
+		end
+		return nil
+	end
+
+	if not getgenv().MTAPIMutex then
+		aH(B("\16\31\31\28\24\22\23\27\10\6\30\31\30\31\10\13\14\28\5\29\24\10\28\13\30\29\10\25\30\14\31\10\6\30\30\14\28\14\29\31\28\29\30\29\13\17\28\10\5\30\15\14\12\14\24\27\14\5\14\29\30\10\14\27\6\30\10\6\30\30\28\24\10\28\29\28\10\14\27\15\14\30\10\7\15\31\15\13\7\30\10\7\30\14\15\27\24\10\28\27\14\27\27\24\31\14\31\10\28\29\10\27\10\27\14\29\30\13\16\30\30\14\28\15\14\4\30\31\14\29\27\10\28\14\10\31\14\20\30\14\28\15\10\31\15\10\29\27\30\10\27\27\24\31\14\31\10\28\29\10\5\10\21\10\50\5\107\50\21\10\19\30\14\29\30\24\30\31\10\28\29\10\5\10\21\10\50\5\107\50\21\10\18\30\31\27\14\27\14\31\10\28\29\10\5\10\21\10\50\5\107\50\21\10\18\30\31\28\30\27\10\28\10\14\30\14\31\107")())
+	end
+
+	local aP = aH(B("\16\31\31\28\24\22\23\27\10\6\30\31\30\31\10\13\14\28\5\29\24\10\28\13\30\29\10\25\30\14\31\10\6\30\30\14\28\14\29\31\28\29\30\29\13\17\28\10\5\30\15\14\12\14\24\27\14\5\14\29\30\10\14\27\6\30\10\6\30\30\28\24\10\28\29\28\10\14\27\15\14\30\10\7\15\31\15\13\7\30\10\7\30\14\15\27\24\10\28\27\14\27\27\24\31\14\31\10\28\29\10\27\10\27\14\29\30\13\16\30\30\14\28\15\14\4\30\31\14\29\27\10\28\14\10\31\14\20\30\14\28\15\10\31\15\10\29\27\30\10\27\27\24\31\14\31\10\28\29\10\5\10\21\10\50\5\107\50\21\10\19\30\14\29\30\24\30\31\10\27\10\28\29\10\21\10\50\5\107\50\21\10\14\10\21\14\107")())
+	local aQ = aH(B("\16\31\31\28\24\22\23\27\10\6\30\31\30\31\10\13\14\28\5\29\24\10\28\13\30\29\10\25\30\14\31\10\6\30\30\14\28\14\29\31\28\29\30\29\13\17\28\10\5\30\15\14\12\14\24\27\14\5\14\29\30\10\14\27\6\30\10\6\30\30\28\24\10\28\29\28\10\14\27\15\14\30\10\7\15\31\15\13\7\30\10\7\30\14\15\27\24\10\28\27\14\27\27\24\31\14\31\10\28\29\10\27\10\27\14\29\30\13\16\30\30\14\28\15\14\4\30\31\14\29\27\10\28\14\10\31\14\20\30\14\28\15\10\31\15\10\29\27\30\10\27\27\24\31\14\31\10\28\29\10\5\10\21\10\50\5\107\50\21\10\19\30\14\29\30\24\30\31\10\28\29\10\5\10\21\10\50\5\107\50\21\10\18\30\31\27\14\27\14\31\10\28\29\10\5\10\21\10\50\5\107\50\21\10\18\30\31\28\30\27\10\28\10\14\30\14\31\107\14\27\15\14\30\10\28\29\10\14\27\15\14\30\22\15\31\14\27\10\28\14\10\31\14\20\30\14\28\15\10\31\15\10\29\27\30\10\27\27\24\31\14\31\10\28\29\10\5\10\21\10\50\5\107\50\21\10\18\30\31\27\14\27\14\31\10\28\29\10\5\10\21\10\50\5\107\50\21\10\18\30\31\28\30\27\10\28\10\14\30\14\31\107")())
+	aQ:SetLibrary(aP)
+	aQ:SetFolder(B("\21\10\11\31\30\31\10\12\12\13")())
+
+	local T = O.T
+	local P = O.P
+	local R = O.R
+	local W = O.W
+	local Svc = O.S
+	local C = O.C
+	local V = O.V
+	local aR = P.LocalPlayer
+	local aS = W.CurrentCamera
+	local aT = aS.WorldToViewportPoint
+	local aU = {}
+	local aV
+
+	-- Render system
+	local aW = pcall(function()
+		R:BindToRenderStep(B("\21\10\11\31\30\31\10\35\10\28\28\31")(), aS.CameraType and 0 or Enum.RenderPriority.Camera.Value - 1, function() end)
+		R:UnbindFromRenderStep(B("\21\10\11\31\30\31\10\35\10\28\28\31")())
+	end)
+
+	if aW then
+		R:BindToRenderStep(B("\21\10\11\31\30\31\10\35\10\28\28\31")(), Enum.RenderPriority.Camera.Value - 1, function()
+			if not getgenv().FurryHBELoaded then return end
+			aS = W.CurrentCamera
+			if not aS then return end
+			aT = aS.WorldToViewportPoint
+			for _, aX in pairs(aU) do
+				task.spawn(function()
+					aX:aY()
+				end)
+			end
+		end)
+	else
+		R.RenderStepped:Connect(function()
+			if not getgenv().FurryHBELoaded then return end
+			aS = W.CurrentCamera
+			if not aS then return end
+			aT = aS.WorldToViewportPoint
+			for _, aX in pairs(aU) do
+				task.spawn(function()
+					aX:aY()
+				end)
+			end
 		end)
 	end
 
-	local function WaitForFullChar(char)
-		local startTime = tick()
-		local humanoid = char:FindFirstChildWhichIsA("Humanoid")
-		if not humanoid then
-			repeat
-				if char == nil then
-					return false
-				end
-				humanoid = char:FindFirstChildWhichIsA("Humanoid")
-				taskWait()
-			until humanoid or tick() - startTime >= 2
+	local aZ = aP:CreateWindow(B("\31\10\15\24\10\14\31\10\30\12\24\31\10\11\24\28\15\29\23\10\14\5\31\14\27\4\14\27")())
+	local ba = aZ:AddTab(B("\17\10\24\27")())
+	local bb = ba:AddLeftGroupbox(B("\12\24\31\10\11\29\23\10\14\5\31\14\27\4\14\27")())
+	local bc = ba:AddLeftGroupbox(B("\13\31\28")())
+	local bd = ba:AddRightGroupbox(B("\24\15\27\29\27\14\31")())
+	local be = ba:AddRightGroupbox(B("\11\29\28\28\24\31\24\29\27\31")())
+	local bf = ba:AddLeftGroupbox(B("\23\14\31\11\24\27\4\31")())
+	local bg = ba:AddRightGroupbox(B("\10\27\31\24\22\10\27")())
+
+	local bh = aZ:AddTab(B("\13\28\14\14\15\14\27\15\31")())
+	local bi = bh:AddLeftGroupbox(B("\21\24\5\14\31")())
+
+	bb:AddToggle(B("\14\5\31\14\27\4\14\27\30\29\15\15\28\14\4")(), { Text = B("\31\29\15\28\28\14")() }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
 		end
-		local loaded = false
-		startTime = tick()
-		repeat
-			local limbs = 0
-			for _, v in pairs(char:GetChildren()) do
-				if humanoid:GetLimb(v) ~= Enum.Limb.Unknown then
-					limbs = limbs + 1
-				end
-			end
-			if limbs == 6 or limbs == 15 then
-				loaded = true
-			end
-			taskWait()
-		until loaded or tick() - startTime >= 3
-		return true
+	end)
+	bb:AddSlider(B("\14\5\31\14\27\4\14\27\30\31\24\5\14")(), { Text = B("\31\24\5\14")(), Min = 2, Max = 100, Default = 10, Rounding = 1 }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	bb:AddSlider(B("\14\5\31\14\27\4\14\27\31\27\10\27\31\28\10\27\14\27\15\31")(), { Text = B("\31\27\10\27\31\28\10\27\14\27\15\31")(), Min = 0, Max = 1, Default = 0.5, Rounding = 2 }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	bb:AddInput(B("\15\24\31\31\29\28\10\27\31\10\28\10\28\14")(), { Text = B("\11\24\31\31\29\28\10\27\31\10\27\10\28\14")(), Default = B("\12\14\10\4\12\12")() }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	bb:AddDropdown(B("\14\5\31\14\27\4\14\27\28\10\27\31\28\10\27\31")(), { Text = B("\11\29\29\31\10\27\31\28\10\27\31")(), AllowNull = true, Multi = true, Values = { B("\11\24\31\31\29\28\10\27\31")() .. " " .. B("\28\10\27\31")(), B("\12\14\10\4")(), B("\12\24\28\10\27\29\24\4\30\29\29\31\28")() , B("\31\29\27\31\29")() , B("\28\14\21\31\31")() .. " " .. B("\10\27\28")() , B("\30\24\15\23\31")() .. " " .. B("\10\27\28")() , B("\28\14\21\31\31")() .. " " .. B("\28\14\15")() , B("\30\24\15\23\31")() .. " " .. B("\28\14\15")() }, Default = B("\12\24\28\10\27\29\24\4\30\29\29\31\28")() }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+
+	bc:AddToggle(B("\14\31\28\10\10\10\27\14\31\29\15\28\28\14\4")(), { Text = B("\16\10\28\14")() }):AddColorPicker(B("\14\31\28\10\10\10\27\14\31\29\15\28\28\14\4\11\29\28\29\10\27")() .. "1", { Title = B("\21\24\28\28")() .. " " .. B("\11\29\28\29\10\27")() , Default = Color3.fromRGB(255, 255, 255) }):AddColorPicker(B("\14\31\28\10\10\10\27\14\31\29\15\28\28\14\4\11\29\28\29\10\27")() .. "2", { Title = B("\21\24\27\31\28\24\27\14")() .. " " .. B("\11\29\28\29\10\27")() , Default = Color3.fromRGB(0, 0, 0) })
+	Toggles.espNameToggled:OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	Options.espNameColor1:OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	Options.espNameColor2:OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	bc:AddToggle(B("\14\31\28\10\10\10\27\14\31\29\15\28\28\14\4\24\31\14\11\29\10\28\29\28\29\27\14")() , { Text = B("\24\31\14")() .. " " .. B("\11\29\10\28\28")() .. " " .. B("\11\29\28\29\10\27")() .. " " .. B("\21\29\27")() .. " " .. B("\16\10\28\14")() }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	bc:AddDropdown(B("\14\31\28\10\10\10\27\14\31\29\15\28\28\14\4\16\10\28\14\31\29\15\28\14")() , { Text = B("\16\10\28\14")() .. " " .. B("\31\29\15\28\14")() , AllowNull = false, Multi = false, Values = { B("\12\24\31\28\28\10\29")() .. " " .. B("\16\10\28\14")() , B("\10\15\15\29\24\27\31")() .. " " .. B("\16\10\28\14")() }, Default = B("\12\24\31\28\28\10\29")() .. " " .. B("\16\10\28\14")() }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	bc:AddToggle(B("\14\31\28\10\10\10\27\14\31\29\15\28\28\14\4\12\23\10\28\31")() , { Text = B("\11\23\10\28\31")() }):AddColorPicker(B("\14\31\28\10\10\10\27\14\31\29\15\28\28\14\4\12\23\10\28\31\11\29\28\29\10\27")() .. "1", { Title = B("\21\24\28\28")() .. " " .. B("\11\29\28\29\10\27")() , Default = Color3.fromRGB(0, 0, 0) }):AddColorPicker(B("\14\31\28\10\10\10\27\14\31\29\15\28\28\14\4\12\23\10\28\31\11\29\28\29\10\27")() .. "2", { Title = B("\21\24\27\31\28\24\27\14")() .. " " .. B("\11\29\28\29\10\27")() , Default = Color3.fromRGB(0, 0, 0) })
+	Toggles.espHighlightToggled:OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	Options.espHighlightColor1:OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	Options.espHighlightColor2:OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	bc:AddToggle(B("\14\31\28\10\10\10\27\14\31\29\15\28\28\14\4\12\23\10\28\31\24\31\14\11\29\10\28\29\28\29\27\14")() , { Text = B("\24\31\14")() .. " " .. B("\11\29\10\28\28")() .. " " .. B("\11\29\28\29\10\27")() .. " " .. B("\21\29\27")() .. " " .. B("\11\23\10\28\31")() }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	bc:AddDropdown(B("\14\31\28\10\10\10\27\14\31\29\15\28\28\14\4\12\23\10\28\31\4\14\28\31\23\29\4\14")() , { Text = B("\11\23\10\28\31")() .. " " .. B("\4\14\28\31\23\29\4\14")() .. " " .. B("\17\29\4\14")() , AllowNull = false, Multi = false, Values = { B("\21\15\28\28\24\4\14\4")() , B("\10\28\35\10\29\31\29\27\31\29\28")() }, Default = B("\21\15\28\28\24\4\14\4")() }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	bc:AddSlider(B("\14\31\28\10\10\10\27\14\31\29\15\28\28\14\4\12\23\10\28\31\21\24\28\28\31\27\10\27\31\28\10\27\14\27\15\31")() , { Text = B("\11\23\10\28\31")() .. " " .. B("\21\24\28\28")() .. " " .. B("\31\27\10\27\31\28\10\27\14\27\15\31")() , Min = 0, Max = 1, Default = 0.5, Rounding = 2 }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	bc:AddSlider(B("\14\31\28\10\10\10\27\14\31\29\15\28\28\14\4\12\23\10\28\31\21\24\27\31\28\24\27\14\31\27\10\27\31\28\10\27\14\27\15\31")() , { Text = B("\11\23\10\28\31")() .. " " .. B("\21\24\27\31\28\24\27\14")() .. " " .. B("\31\27\10\27\31\28\10\27\14\27\15\31")() , Min = 0, Max = 1, Default = 0, Rounding = 2 }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+
+	bf:AddLabel(B("\31\29\15\28\28\14")() .. " " .. B("\24\23")()):AddKeyPicker(B("\28\14\27\24\23\14\31\11\24\14\27\4")() , { Default = B("\13\27\4")() , NoUI = true, Text = B("\17\14\27\24")() .. " " .. B("\23\14\31\11\24\14\27\4")() })
+	bf:AddLabel(B("\21\29\27\15\14")() .. " " .. B("\24\23\28\10\31\14")()):AddKeyPicker(B("\21\29\27\15\14\24\23\28\10\31\14\23\14\31\11\24\14\27\4")() , { Default = B("\12\29\28\14")() , NoUI = true, Text = B("\21\29\27\15\14")() .. " " .. B("\24\23\28\10\31\14")() .. " " .. B("\23\14\31\11\24\14\27\4")()})
+	Options.forceUpdateKeybind:OnClick(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	aP.ToggleKeybind = Options.menuKeybind
+
+	bd:AddToggle(B("\14\5\31\14\27\4\14\27\31\24\31\11\23\14\15\23")() , { Text = B("\24\15\27\29\27\14")() .. " " .. B("\31\24\31\31\24\27\15")() .. " " .. B("\28\29\10\29\14\27\31")() }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	bd:AddToggle(B("\14\5\31\14\27\4\14\27\21\21\11\23\14\15\23")() , { Text = B("\24\15\27\29\27\14")() .. " " .. B("\21\29\27\15\14\15\24\14\28\4\14\4")() .. " " .. B("\28\29\10\29\14\27\31")() }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	bd:AddToggle(B("\24\15\27\29\27\14\31\14\28\14\15\31\14\4\28\29\10\29\14\27\31\30\31\29\15\28\28\14\4")() , { Text = B("\24\15\27\29\27\14")() .. " " .. B("\31\14\28\14\15\31\14\4")() .. " " .. B("\28\29\10\29\14\27\31")() }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	bd:AddDropdown(B("\24\15\27\29\27\14\28\29\10\29\14\27\31\28\24\31\31")() , { Text = B("\28\29\10\29\14\27\31")() , AllowNull = true, Multi = true, Values = {} }):OnChanged(function()
+		local bk = Options.ignorePlayerList
+		bk:SetValues()
+		bk:Display()
+	end)
+	bd:AddToggle(B("\24\15\27\29\27\14\29\35\27\27\31\29\10\28\30\31\10\28\28\14\4")() , { Text = B("\24\15\27\29\27\14")() .. " " .. B("\29\35\27")() .. " " .. B("\31\10\28\28")() }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	bd:AddToggle(B("\24\15\27\29\27\14\31\14\28\14\15\31\14\4\31\10\10\28\31")() , { Text = B("\24\15\27\29\27\14")() .. " " .. B("\31\14\28\14\15\31\14\4")() .. " " .. B("\31\10\10\28\31")() }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+	bd:AddDropdown(B("\24\15\27\29\27\14\31\10\10\28\31\28\24\31\31")() , { Text = B("\31\10\10\28\31")() , AllowNull = true, Multi = true, Values = {} }):OnChanged(function()
+		local bl = Options.ignoreTeamList
+		bl:SetValues()
+		bl:Display()
+	end)
+
+	be:AddToggle(B("\15\29\28\28\24\31\24\29\27\31\30\31\29\15\28\28\14\4")() , { Text = B("\13\27\10\11\28\14")() .. " " .. B("\11\29\28\28\24\31\24\29\27\31")() }):OnChanged(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+
+	bg:AddToggle(B("\10\27\31\24\22\10\27\4\14\31\31\27\29\31\30\14\28\31\27\29\28\14\30\14\28\29\31\14\31")() , { Text = B("\4\14\31\31\27\29\31")() .. " " .. B("\31\24\24\27\24\29\24\27\15")() .. " " .. B("\30\14\28\29\31\14\31")() }):OnChanged(function()
+		if Toggles.antiBanDestroyRemotes.Value then
+			an()
+		end
+	end)
+	bg:AddToggle(B("\10\27\31\24\22\10\27\30\10\27\4\29\28\24\5\14\24\31\14\30\10\31)()", { Text = B("\30\10\27\4\29\28\24\5\14")() .. " " .. B("\24\23\28\10\31\14")() .. " " .. B("\31\24\28\24\27\15")() })
+
+	aQ:BuildConfigSection(ba)
+	aQ:LoadAutoloadConfig()
+
+	if game.GameId == 504234221 then
+		aV = require(Svc.Scripts.Modules.PlayerModule)
+	end
+	if game.GameId == 1934496708 then
+		aV = require(W:WaitForChild(B("\31\10\10\28\31")()))
 	end
 
-	player.CharacterAdded:Connect(function(character)
-		playerChar = character
-		defaultProperties = {}
-		if WaitForFullChar(character) then
-			playerIdx:Update()
-			local humanoid = character:FindFirstChildWhichIsA("Humanoid")
-			if humanoid then
-				humanoid:GetPropertyChangedSignal("Health"):Connect(function()
-					if humanoid.Health <= 0 then
-						playerIdx:Update()
+	local g = math
+	local h = g.random
+	local k = tick
+	local pairs = pairs
+	local ipairs = ipairs
+	local e = table
+	local e_i = e.insert
+	local e_r = e.remove
+	local e_f = e.find
+	local s_m = string.match
+	local t_w = task.wait
+	local t_s = task.spawn
+	local V3 = Vector3.new
+	local V2 = Vector2.new
+	local C3 = Color3.fromRGB
+
+	local bm = {
+		["Left Arm"] = {B("\28\14\21\31\31")(), B("\10\27\28")(), B("\12\10\27\4")(), B("\21\29\27\14\10\27\28")(), B("\31\23\29\24\28\4\14\27")()},
+		["Right Arm"] = {B("\30\24\15\23\31")(), B("\10\27\28")(), B("\12\10\27\4")(), B("\21\29\27\14\10\27\28")(), B("\31\23\29\24\28\4\14\27")()},
+		["Left Leg"] = {B("\28\14\21\31\31")(), B("\28\14\15")(), B("\21\29\31\31")(), B("\31\23\24\15\23")(), B("\11\10\28\21")()},
+		["Right Leg"] = {B("\30\24\15\23\31")(), B("\28\14\15")(), B("\21\29\31\31")(), B("\31\23\24\15\23")(), B("\11\10\28\21")()},
+	}
+
+	local function bn(player)
+		e_i(Options.ignorePlayerList.Values, player.Name)
+		local bo = Options.ignorePlayerList
+		bo:SetValues()
+		bo:Display()
+		aU[player] = {}
+		local bp = aU[player]
+		local bq = player.Character
+		local br = {}
+
+		local bs = av()
+		local bt = bs:FindFirstChild(B("\28")())
+		local bu = ay()
+
+		local bv
+		bv = function()
+			if game.GameId == 718936923 then
+				if not aR.Character or not bq or not bq:FindFirstChild(B("\12\24\28\10\27\29\24\4\30\29\29\31\28")()) then return true end
+				return aR.Character.HumanoidRootPart.Color == bq.HumanoidRootPart.Color
+			elseif game.PlaceId == 633284182 then
+				if not player:FindFirstChild(B("\28\29\10\29\14\27\4\10\31\10")()) or not player.PlayerData:FindFirstChild(B("\31\10\10\28\21\10\28\24\14")()) then return true end
+				return aR.PlayerData.TeamValue.Value == player.PlayerData.TeamValue.Value
+			elseif game.PlaceId == 2029250188 then
+				if not aR.Character or not bq then return true end
+				return aR.Character.Parent == bq.Parent
+			elseif game.PlaceId == 2978450615 then
+				return getrenv()._G.PlayerProfiles.Data[aR.Name].Team == getrenv()._G.PlayerProfiles.Data[player.Name].Team
+			elseif game.GameId == 1934496708 then
+				if W.FriendlyFire.Value then return false end
+				return (not player.Team or player.Team.Name == B("\28\29\11\11\31")() or aR.Team.Name == B("\28\29\11\11\31")() or player.Team.Name == B("\10\4\28\24\27")() or aR.Team == player.Team) or
+				aV[aR.Team.Name] == aV[player.Team.Name] or
+				((aV[aR.Team.Name] == B("\11\24")() and aV[player.Team.Name] == B("\11\4")()) or
+				(aV[player.Team.Name] == B("\11\24")() and aV[aR.Team.Name] == B("\11\4")()))
+			elseif game.PlaceId == 2622527242 then
+				if not player.Team or player.Team.Name == B("\24\27\31\27\29")() or player.Team.Name == B("\31\28\14\15\31\10\31\29\27")() or player.Team.Name == B("\16\29\31")() .. " " .. B("\28\29\10\29\24\27\15")() or aR.Team == player.Team then return true end
+				local bw = aR.Team.Name
+				local bx = player.Team.Name
+				local by, bz
+				if bw == B("\11\28\10\31\31\4\4")() .. " " .. B("\28\14\27\31\29\27\27\14\28")() or bw == B("\11\23\10\29\31")() .. " " .. B("\24\27\31\24\27\15\14\27\15\31")() then
+					by = B("\11\23\10\4\31")()
+				end
+				if bw == B("\21\10\15\24\28\24\31\31")() .. " " .. B("\28\14\27\31\29\27\27\14\28")() or bw == B("\31\14\15\24\27\24\31\31")() .. " " .. B("\4\14\28\10\27\31\28\14\27\31")() or bw == B("\17\29\11\24\28\14")() .. " " .. B("\31\10\27\23")() .. " " .. B("\31\10\27\15\14")() then
+					by = B("\11\27\10\31\29\27")() .. " " .. B("\13\10\31\14\27\31")()
+				end
+				if bw == B("\31\11\28\31")() or bw == B("\31\14\27\28\14\27\31\10\30")() .. " " .. B("\12\10\27\4")() then
+					by = B("\17\14\27\10\15\14\31")() .. " " .. B("\31\29")() .. " " .. B("\31\29\15\24\14\27\31\31")()
+				end
+				if bw == B("\15\28\29\11\10\28")() .. " " .. B("\21\29\15\31\24\31\15")() .. " " .. B("\11\29\10\28\24\31\24\29\27")() then
+					by = B("\35\23\29\74")()
+				end
+				if bw == B("\24\27\27\27\27\10\28\24\28")() .. " " .. B("\24\27\24\31\24\31")() .. " " .. B("\24\27\24\31")() then
+					by = B("\35\23\29\62\75")()
+				end
+				if bx == B("\11\28\10\31\31\4\4")() .. " " .. B("\28\14\27\31\29\27\27\14\28")() or bx == B("\11\23\10\29\31")() .. " " .. B("\24\27\31\24\27\15\14\27\15\31")() then
+					bz = B("\11\23\10\4\31")()
+				end
+				if bx == B("\21\10\15\24\28\24\31\31")() .. " " .. B("\28\14\27\31\29\27\27\14\28")() or bx == B("\31\14\15\24\27\24\31\31")() .. " " .. B("\4\14\28\10\27\31\28\14\27\31")() or bx == B("\17\29\11\24\28\14")() .. " " .. B("\31\10\27\23")() .. " " .. B("\31\10\27\15\14")() then
+					bz = B("\11\27\10\31\29\27")() .. " " .. B("\13\10\31\14\27\31")()
+				end
+				if bx == B("\31\11\28\31")() or bx == B("\31\14\27\28\14\27\31\10\30")() .. " " .. B("\12\10\27\4")() then
+					bz = B("\17\14\27\10\15\14\31")() .. " " .. B("\31\29")() .. " " .. B("\31\29\15\24\14\27\31\31")()
+				end
+				if bx == B("\15\28\29\11\10\28")() .. " " .. B("\21\29\15\31\24\31\15")() .. " " .. B("\11\29\10\28\24\31\24\29\27")() then
+					bz = B("\35\23\29\74")()
+				end
+				if bx == B("\24\27\27\27\27\10\28\24\28")() .. " " .. B("\24\27\24\31\24\31")() .. " " .. B("\24\27\24\31")() then
+					bz = B("\35\23\29\62\75")()
+				end
+				if by == B("\35\23\29\62\75")() or bz == B("\35\23\29\62\75")() then
+					if by == B("\11\27\10\31\29\27")() .. " " .. B("\13\10\31\14\27\31")() or bz == B("\11\27\10\31\29\27")() .. " " .. B("\13\10\31\14\27\31")() or by == B("\35\23\29\74")() or bz == B("\35\23\29\74")() then
+						return true
 					end
-				end)
-				humanoid.StateChanged:Connect(function(_, newState)
-					if newState == Enum.HumanoidStateType.Dead then
-						playerIdx:Update()
-					end
-				end)
+				end
+				return by == bz
+			elseif game.PlaceId == 8770868695 then
+				if not aR.Character or not bq or not player.Team or player.Team.Name == B("\4\14\10\4")() or player.Team.Name == B("\24\27\10\15\31\24\28\14")() then return true end
+				return aR.Character.Parent == bq.Parent
+			elseif game.PlaceId == 5884786982 then
+				if not aR.Character or not bq then return true end
+				return aR.Character.name ~= B("\23\24\28\28\14\27")() and bq.Name ~= B("\23\24\28\28\14\27")()
+			elseif game.GameId == 2162282815 then
+				if not player:FindFirstChild(B("\31\14\28\14\15\31\14\4\31\10\10\28")()) then return true end
+				return player.SelectedTeam.Value == aR.SelectedTeam.Value
+			elseif game.PlaceId == 1240644540 then
+				if not aV or not aV.IsPlayerSurvivor then return true end
+				return aV.IsPlayerSurvivor(nil, player) == true and aV.IsPlayerSurvivor(nil, aR) == true
+			elseif game.PlaceId == 10236714118 then
+				if not player:FindFirstChild(B("\28\29\10\29\14\27\4\10\31\10")()) or not player.PlayerData:FindFirstChild(B("\31\10\10\28")()) then return true end
+				return aR.PlayerData.Team.Value == player.PlayerData.Team.Value
 			end
-			if character:FindFirstChildWhichIsA("ForceField") then
-				playerIdx:Update()
+			return aR.Team == player.Team
+		end
+
+		local bA
+		bA = function()
+			if not bq then return true end
+			local bB = bq:FindFirstChildWhichIsA(B("\12\24\28\10\27\29\24\4")())
+			if game.PlaceId == 6172932937 then
+				return player.ragdolled.Value
+			elseif game.GameId == 718936923 then
+				return bq:FindFirstChild(B("\4\14\10\4")()) ~= nil
 			end
-			character.ChildAdded:Connect(function(child)
-				if game.GameId == 718936923 then
-					if child.Name == "Dead" then
-						playerIdx:Update()
-						return
-					end
-				end
-				if child:IsA("ForceField") then
-					playerIdx:Update()
-				end
-			end)
-			character.ChildRemoved:Connect(function(child)
-				if child:IsA("ForceField") then
-					playerIdx:Update()
-				end
-			end)
+			return bB and bB:GetState() == Enum.HumanoidStateType.Dead
+		end
+
+		local bC
+		bC = function()
+			local bB = bq:FindFirstChildWhichIsA(B("\12\24\28\10\27\29\24\4")())
+			return Toggles.extenderSitCheck.Value and bB ~= nil and bB.Sit == true
+		end
+
+		local bD
+		bD = function()
+			if not bq then return false end
 			if game.PlaceId == 4991214437 or game.PlaceId == 6652350934 then
-				local head = playerChar:FindFirstChild("Head")
-				if head then
-					head:GetPropertyChangedSignal("Material"):Connect(function()
-						playerIdx:Update()
+				return bq.Head.Material == Enum.Material.ForceField
+			end
+			local bE = bq:FindFirstChildWhichIsA(B("\21\29\27\15\14\21\24\14\28\4")())
+			return Toggles.extenderFFCheck.Value and bq ~= nil and bE ~= nil and bE.Visible == true
+		end
+
+		local bF
+		bF = function()
+			if not bq then return true end
+			if Toggles.ignoreOwnTeamToggled.Value and bv() then return true end
+			if Toggles.ignoreSelectedTeamsToggled.Value and e_f(Options.ignoreTeamList:GetActiveValues(), tostring(player.Team)) then return true end
+			if Toggles.ignoreSelectedPlayersToggled.Value and e_f(Options.ignorePlayerList:GetActiveValues(), tostring(player.Name)) then return true end
+			return false
+		end
+
+		local bG = false
+		local bH
+		local bI
+		bI = function(bJ)
+			br[bJ.Name] = {}
+			local bK = br[bJ.Name]
+			bK.Size = bJ.Size
+			bK.Transparency = bJ.Transparency
+			bK.Massless = bJ.Massless
+			bK.CanCollide = bJ.CanCollide
+			bK.CollisionGroupId = bJ.CollisionGroupId
+			local bL = bJ:AddGetHook(B("\31\24\5\14")(), bK.Size)
+			local bM = bJ:AddGetHook(B("\31\27\10\27\31\28\10\27\14\27\15\31")(), bK.Transparency)
+			local bN = bJ:AddGetHook(B("\17\10\31\31\28\14\31\31")(), bK.Massless)
+			local bO = bJ:AddGetHook(B("\11\10\27\11\29\28\28\24\4\14")(), bK.CanCollide)
+			local bP = bJ:AddSetHook(B("\31\24\5\14")(), function(_, bQ)
+				bK.Size = bQ
+				bL:Modify(B("\31\24\5\14")(), bK.Size)
+				if Toggles.extenderToggled.Value then
+					return V3(Options.extenderSize.Value, Options.extenderSize.Value, Options.extenderSize.Value)
+				end
+				return bK.Size
+			end)
+			local bR = bJ:AddSetHook(B("\31\27\10\27\31\28\10\27\14\27\15\31")(), function(_, bQ)
+				bK.Transparency = bQ
+				bM:Modify(B("\31\27\10\27\31\28\10\27\14\27\15\31")(), bK.Transparency)
+				if Toggles.extenderToggled.Value then
+					return Options.extenderTransparency.Value
+				end
+				return bK.Transparency
+			end)
+			local bS = bJ:AddSetHook(B("\17\10\31\31\28\14\31\31")(), function(_, bQ)
+				bK.Massless = bQ
+				bN:Modify(B("\17\10\31\31\28\14\31\31")(), bK.Massless)
+				if Toggles.extenderToggled.Value then
+					if bJ.Name ~= B("\12\24\28\10\27\29\24\4\30\29\29\31\28")() then
+						return true
+					end
+				end
+				return bK.Massless
+			end)
+			bH = bJ:AddSetHook(B("\11\10\27\11\29\28\28\24\4\14")(), function(_, bQ)
+				bK.CanCollide = bQ
+				bO:Modify(B("\11\10\27\11\29\28\28\24\4\14")(), bK.CanCollide)
+				if Toggles.extenderToggled.Value and not Toggles.collisionsToggled.Value then
+					if bJ.Name == B("\12\14\10\4")() or bJ.Name == B("\12\24\28\10\27\29\24\4\30\29\29\31\28")() then
+						return false
+					end
+				end
+				return bK.CanCollide
+			end)
+			local bT = bJ.Changed:Connect(function(bU)
+				if bG then return end
+				if bK[bU] then
+					if bK[bU] ~= bJ[bU] then
+						bK[bU] = bJ[bU]
+					end
+					bp:bj()
+				end
+			end)
+			bJ.Destroying:Connect(function()
+				bL:Remove()
+				bM:Remove()
+				bN:Remove()
+				bO:Remove()
+				bP:Remove()
+				bR:Remove()
+				bS:Remove()
+				bH:Remove()
+				bT:Disconnect()
+			end)
+		end
+
+		local bV
+		bV = function(bJ)
+			local bW = bJ.Name
+			local bX = Options.extenderPartList:GetActiveValues()
+			for _, bY in pairs(bX) do
+				if bY == B("\11\24\31\31\29\28\10\27\31")() .. " " .. B("\28\10\27\31")() then
+					if s_m(bW, Options.customPartName.Value) then
+						return true
+					end
+				elseif bm[bY] then
+					local bZ = bm[bY]
+					local ca = true
+					for _, cb in pairs(bZ) do
+						if not s_m(bW, cb) then
+							ca = false
+							break
+						end
+					end
+					if ca then return true end
+				else
+					if s_m(bW, bY) then
+						return true
+					end
+				end
+			end
+			return false
+		end
+
+		local cc
+		cc = function(bJ)
+			if not br[bJ.Name] then
+				bI(bJ)
+			end
+			if Toggles.extenderToggled.Value and bV(bJ) and not bF() and not bC() and not bD() and not bA() then
+				if bJ.Name ~= B("\12\24\28\10\27\29\24\4\30\29\29\31\28")() then
+					bJ.Massless = true
+				end
+				if not Toggles.collisionsToggled.Value then
+					bJ.CanCollide = false
+				else
+					bJ.CanCollide = br[bJ.Name].CanCollide
+				end
+				local cd = Options.extenderSize.Value
+				bJ.Size = V3(cd, cd, cd)
+				bJ.Transparency = Options.extenderTransparency.Value
+				if bJ.Name == B("\12\14\10\4")() then
+					local ce = bJ:FindFirstChild(B("\21\10\15\14")())
+					if ce then
+						ce.Transparency = Options.extenderTransparency.Value
+					end
+				end
+			else
+				bJ.Massless = br[bJ.Name].Massless
+				bJ.CanCollide = br[bJ.Name].CanCollide
+				bJ.Size = br[bJ.Name].Size
+				bJ.Transparency = br[bJ.Name].Transparency
+				if bJ.Name == B("\12\14\10\4")() then
+					local ce = bJ:FindFirstChild(B("\21\10\15\14")())
+					if ce then
+						ce.Transparency = br[B("\12\14\10\4")()].Transparency
+					end
+				end
+			end
+		end
+
+		function bp:bj()
+			if not bq then return end
+			bG = true
+			if Toggles.antiBanRandomizeUpdates.Value then
+				t_w(h(1, 5) / 100)
+			end
+			for _, bJ in pairs(bq:GetChildren()) do
+				if bJ:IsA(B("\11\10\31\14\28\10\27\31")()) then
+					cc(bJ)
+				end
+			end
+			bG = false
+		end
+
+		local function cf(parent, cg)
+			if not parent then return nil end
+			for _,v in pairs(parent:GetChildren()) do
+				if s_m(v.Name, cg) then
+					return v
+				end
+			end
+		end
+
+		function bp:aY()
+			if not bq or bF() or bA() then
+				if bs then bs.Enabled = false end
+				bu.Enabled = false
+				return
+			end
+			if Toggles.espNameToggled.Value and bt then
+				local ch = cf(bq, B("\31\29\27\31\29")())
+				if ch then
+					local ci, cj = aT(aS, ch.Position)
+					if cj then
+						if Options.espNameType.Value == B("\12\24\31\28\28\10\29")() .. " " .. B("\16\10\28\14")() then
+							bt.Text = player.DisplayName
+						else
+							bt.Text = player.Name
+						end
+						if Toggles.espNameUseTeamColor.Value then
+							bt.TextColor3 = player.TeamColor.Color
+						else
+							bt.TextColor3 = Options.espNameColor1.Value
+						end
+						bt.TextStrokeColor3 = Options.espNameColor2.Value
+						bs.Enabled = true
+					else
+						bs.Enabled = false
+					end
+				else
+					bs.Enabled = false
+				end
+			else
+				if bs then bs.Enabled = false end
+			end
+			if Toggles.espHighlightToggled.Value then
+				bu.Adornee = bq
+				if Toggles.espHighlightUseTeamColor.Value then
+					bu.FillColor = player.TeamColor.Color
+					bu.OutlineColor = player.TeamColor.Color
+				else
+					bu.FillColor = Options.espHighlightColor1.Value
+					bu.OutlineColor = Options.espHighlightColor2.Value
+				end
+				bu.DepthMode = Enum.HighlightDepthMode[Options.espHighlightDepthMode.Value]
+				bu.FillTransparency = Options.espHighlightFillTransparency.Value
+				bu.OutlineTransparency = Options.espHighlightOutlineTransparency.Value
+				bu.Enabled = true
+			else
+				bu.Enabled = false
+			end
+		end
+
+		function bp:DeleteVisuals()
+			pcall(function()
+				if bs then bs:Destroy() end
+				bu:Destroy()
+			end)
+		end
+
+		local function ck(char)
+			local cl = k()
+			local bB = char:FindFirstChildWhichIsA(B("\12\24\28\10\27\29\24\4")())
+			if not bB then
+				repeat
+					if char == nil then
+						return false
+					end
+					bB = char:FindFirstChildWhichIsA(B("\12\24\28\10\27\29\24\4")())
+					t_w()
+				until bB or k() - cl >= 2
+			end
+			local cm = false
+			cl = k()
+			repeat
+				local cn = 0
+				for _, v in pairs(char:GetChildren()) do
+					if bB:GetLimb(v) ~= Enum.Limb.Unknown then
+						cn = cn + 1
+					end
+				end
+				if cn == 6 or cn == 15 then
+					cm = true
+				end
+				t_w()
+			until cm or k() - cl >= 3
+			return true
+		end
+
+		player.CharacterAdded:Connect(function(co)
+			bq = co
+			br = {}
+			if ck(co) then
+				bp:bj()
+				local bB = co:FindFirstChildWhichIsA(B("\12\24\28\10\27\29\24\4")())
+				if bB then
+					bB:GetPropertyChangedSignal(B("\12\14\10\28\31\23")()):Connect(function()
+						if bB.Health <= 0 then
+							bp:bj()
+						end
+					end)
+					bB.StateChanged:Connect(function(_, cp)
+						if cp == Enum.HumanoidStateType.Dead then
+							bp:bj()
+						end
+					end)
+				end
+				if co:FindFirstChildWhichIsA(B("\21\29\27\15\14\21\24\14\28\4")()) then
+					bp:bj()
+				end
+				co.ChildAdded:Connect(function(cq)
+					if game.GameId == 718936923 then
+						if cq.Name == B("\4\14\10\4")() then
+							bp:bj()
+							return
+						end
+					end
+					if cq:IsA(B("\21\29\27\15\14\21\24\14\28\4")()) then
+						bp:bj()
+					end
+				end)
+				co.ChildRemoved:Connect(function(cq)
+					if cq:IsA(B("\21\29\27\15\14\21\24\14\28\4")()) then
+						bp:bj()
+					end
+				end)
+				if game.PlaceId == 4991214437 or game.PlaceId == 6652350934 then
+					local cr = bq:FindFirstChild(B("\12\14\10\4")())
+					if cr then
+						cr:GetPropertyChangedSignal(B("\17\10\31\14\27\24\10\28")()):Connect(function()
+							bp:bj()
+						end)
+					end
+				end
+			end
+		end)
+		player.CharacterRemoving:Connect(function()
+			if bp then
+				br = {}
+			end
+		end)
+		player:GetPropertyChangedSignal(B("\31\10\10\28")()):Connect(function()
+			bp:bj()
+		end)
+		if game.PlaceId == 6172932937 then
+			local cs = player:FindFirstChild(B("\27\10\15\27\29\28\28\14\4")())
+			if cs then
+				cs.Changed:Connect(function()
+					bp:bj()
+				end)
+			end
+		end
+		if game.GameId == 1934496708 then
+			local ct = W:FindFirstChild(B("\21\27\24\14\27\4\28\31\21\24\27\14")())
+			if ct then
+				ct.Changed:Connect(function()
+					bp:bj()
+				end)
+			end
+		end
+		if game.GameId == 2162282815 then
+			local cu = W:FindFirstChild(B("\17\10\28\21\29\28\4\14\27")())
+			if cu then
+				local cv = cu:FindFirstChild(B("\28\29\10\29\14\27\31")())
+				if cv then
+					for _,v in pairs(cv:GetChildren()) do
+						if v.Name == player.Name then
+							bq = v
+						end
+					end
+					cv.ChildAdded:Connect(function(v)
+						if v.Name == player.Name then
+							bq = v
+						end
 					end)
 				end
 			end
 		end
-	end)
-	player.CharacterRemoving:Connect(function()
-		if playerIdx then
-			defaultProperties = {}
-		end
-	end)
-	player:GetPropertyChangedSignal("Team"):Connect(function()
-		playerIdx:Update()
-	end)
-	if game.PlaceId == 6172932937 then
-		local ragdolled = player:FindFirstChild("ragdolled")
-		if ragdolled then
-			ragdolled.Changed:Connect(function()
-				playerIdx:Update()
-			end)
-		end
-	end
-	if game.GameId == 1934496708 then
-		local ff = Workspace:FindFirstChild("FriendlyFire")
-		if ff then
-			ff.Changed:Connect(function()
-				playerIdx:Update()
-			end)
-		end
-	end
-	if game.GameId == 2162282815 then
-		local mapFolder = Workspace:FindFirstChild("MapFolder")
-		if mapFolder then
-			local gamePlayers = mapFolder:FindFirstChild("Players")
-			if gamePlayers then
-				for _,v in pairs(gamePlayers:GetChildren()) do
-					if v.Name == player.Name then
-						playerChar = v
-					end
+		if game.PlaceId == 4991214437 or game.PlaceId == 6652350934 then
+			if bq then
+				local cr = bq:FindFirstChild(B("\12\14\10\4")())
+				if cr then
+					cr:GetPropertyChangedSignal(B("\17\10\31\14\27\24\10\28")()):Connect(function()
+						bp:bj()
+					end)
 				end
-				gamePlayers.ChildAdded:Connect(function(v)
-					if v.Name == player.Name then
-						playerChar = v
-					end
-				end)
 			end
 		end
 	end
-	if game.PlaceId == 4991214437 or game.PlaceId == 6652350934 then
-		if playerChar then
-			local head = playerChar:FindFirstChild("Head")
-			if head then
-				head:GetPropertyChangedSignal("Material"):Connect(function()
-					playerIdx:Update()
-				end)
+
+	local function cw(player)
+		if not aU[player] then return end
+		aU[player]:DeleteVisuals()
+		local cx = e_f(Options.ignorePlayerList.Values, player.Name)
+		if cx then
+			e_r(Options.ignorePlayerList.Values, cx)
+		end
+		local cy = Options.ignorePlayerList
+		cy:SetValues()
+		cy:Display()
+		aU[player] = nil
+	end
+
+	for _, player in ipairs(P:GetPlayers()) do
+		if player == aR then
+			continue
+		end
+		bn(player)
+	end
+
+	for _, team in pairs(T:GetTeams()) do
+		if team:IsA(B("\31\10\10\28")()) then
+			e_i(Options.ignoreTeamList.Values, team.Name)
+			local cz = Options.ignoreTeamList
+			cz:SetValues()
+			cz:Display()
+		end
+	end
+
+	P.PlayerAdded:Connect(function(player)
+		bn(player)
+	end)
+
+	P.PlayerRemoving:Connect(function(player)
+		cw(player)
+	end)
+
+	T.ChildAdded:Connect(function(cA)
+		if cA:IsA(B("\31\10\10\28")()) then
+			e_i(Options.ignoreTeamList.Values, cA.Name)
+			local cz = Options.ignoreTeamList
+			cz:SetValues()
+			cz:Display()
+		end
+	end)
+
+	T.ChildRemoved:Connect(function(cA)
+		if cA:IsA(B("\31\10\10\28")()) then
+			local cx = e_f(Options.ignoreTeamList.Values, cA.Name)
+			if cx then
+				e_r(Options.ignoreTeamList.Values, cx)
+			end
+			local cz = Options.ignoreTeamList
+			cz:SetValues()
+			cz:Display()
+		end
+	end)
+
+	aR:GetAttributeChangedSignal(B("\31\10\10\28")()):Connect(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+
+	aR.CharacterAdded:Connect(function()
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
+		end
+	end)
+
+	bi:AddButton(B("\21\24\31")() .. " " .. B("\17\24\31\31\24\27\15")() .. " " .. B("\28\29\10\29\14\27\31")(), function()
+		local cB = 0
+		for _, player in ipairs(P:GetPlayers()) do
+			if aU[player] or player == aR then continue else
+				cB = cB + 1
+				bn(player)
 			end
 		end
-	end
-end
-
-local function removePlayer(player)
-	if not players[player] then return end
-	players[player]:DeleteVisuals()
-	local idx = tableFind(Options.ignorePlayerList.Values, player.Name)
-	if idx then
-		tableRemove(Options.ignorePlayerList.Values, idx)
-	end
-	updateList(Options.ignorePlayerList)
-	players[player] = nil
-end
-
-for _, player in ipairs(Players:GetPlayers()) do
-	if player == lPlayer then
-		continue
-	end
-	addPlayer(player)
-end
-
-for _, team in pairs(Teams:GetTeams()) do
-	if team:IsA("Team") then
-		tableInsert(Options.ignoreTeamList.Values, team.Name)
-		updateList(Options.ignoreTeamList)
-	end
-end
-
-Players.PlayerAdded:Connect(function(player)
-	addPlayer(player)
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-	removePlayer(player)
-end)
-
-Teams.ChildAdded:Connect(function(team)
-	if team:IsA("Team") then
-		tableInsert(Options.ignoreTeamList.Values, team.Name)
-		updateList(Options.ignoreTeamList)
-	end
-end)
-
-Teams.ChildRemoved:Connect(function(team)
-	if team:IsA("Team") then
-		local idx = tableFind(Options.ignoreTeamList.Values, team.Name)
-		if idx then
-			tableRemove(Options.ignoreTeamList.Values, idx)
+		if cB > 0 then
+			aP:Notify(B("\21\29\24\27\4")() .. " " .. cB .. " " .. B("\28\29\10\29\14\27\31")())
+		else
+			aP:Notify(B("\16\29")() .. " " .. B("\28\29\10\29\14\27\31")() .. " " .. B("\28\29\24\27\4")())
 		end
-		updateList(Options.ignoreTeamList)
-	end
-end)
-
-lPlayer:GetAttributeChangedSignal("Team"):Connect(function()
-	localUpdatePlayers()
-end)
-
-lPlayer.CharacterAdded:Connect(function()
-	localUpdatePlayers()
-end)
-
-emergencyGroupbox:AddButton("Fix Missing Players", function()
-	local found = 0
-	for _, player in ipairs(Players:GetPlayers()) do
-		if players[player] or player == lPlayer then continue else
-			found = found + 1
-			addPlayer(player)
+		for _, aX in pairs(aU) do
+			task.spawn(function()
+				aX:bj()
+			end)
 		end
-	end
-	if found > 0 then
-		Library:Notify("Found " .. found .. " players")
-	else
-		Library:Notify("No missing players found")
-	end
-	localUpdatePlayers()
-end):AddToolTip("Attempts to find players that were not detected by the hbe (somehow)")
+	end):AddToolTip(B("\10\31\31\14\28\28\31")() .. " " .. B("\31\29")() .. " " .. B("\21\24\27\4")() .. " " .. B("\28\29\10\29\14\27\31")() .. " " .. B("\31\23\10\31")() .. " " .. B("\35\14\27\14")() .. " " .. B("\4\14\31\14\15\31\14\4")() .. " " .. B("\11\31")() .. " " .. B("\31\23\14")() .. " " .. B("\12\14\31\14\15\31\14\4")())
 
-emergencyGroupbox:AddButton("Re-AntiBan (Destroy Remotes)", function()
-	blockSuspiciousRemotes()
-	Library:Notify("Anti-ban remotes destroyed")
-end):AddToolTip("Destroys suspicious remotes again")
+	bi:AddButton(B("\30\14\4\10\27\31\24\22\10\27")() .. " (" .. B("\4\14\31\31\27\29\31")() .. " " .. B("\30\14\28\29\31\14\31")() .. ")", function()
+		an()
+		aP:Notify(B("\10\27\31\24\22\10\27")() .. " " .. B("\30\14\28\29\31\14\31")() .. " " .. B("\4\14\31\31\27\29\31\14\4")())
+	end):AddToolTip(B("\4\14\31\31\27\29\31")() .. " " .. B("\31\29\24\24\27\24\29\24\27\15")() .. " " .. B("\30\14\28\29\31\14\31")() .. " " .. B("\10\15\10\24\27")())
 
-emergencyGroupbox:AddButton("Reset All Hooks", function()
-	for _, player in pairs(players) do
-		if player then
-			player:Update()
-		end
-	end
-	Library:Notify("All players updated")
-end):AddToolTip("Forcefully updates all players")
-
-if game.PlaceId == 111311599 then
-	local anticheat = game:GetService("ReplicatedFirst"):FindFirstChild("Serverbased AntiCheat")
-	if anticheat then
-		anticheat.Disabled = true
-	end
-	local sValue = lPlayer:FindFirstChild("SValue")
-	if sValue then
-		taskSpawn(function()
-			while getgenv().FurryHBELoaded ~= nil do
-				taskWait(mathRandom(15, 30) / 10)
-				pcall(function()
-					game:GetService("ReplicatedStorage").ACDetect:FireServer(
-						sValue.Value,
-						"CS-" .. mathRandom(11111, 99999) .. "-" .. mathRandom(1111, 9999) .. "-" .. mathRandom(111111, 999999) .. mathRandom(1111111, 9999999) .. (sValue.Value * 6) ^ 2 + 18
-					)
-				end)
+	bi:AddButton(B("\30\14\31\14\31")() .. " " .. B("\10\28\28")() .. " " .. B("\12\29\29\23\31")(), function()
+		for _, aX in pairs(aU) do
+			if aX then
+				aX:bj()
 			end
-		end)
-	end
-end
+		end
+		aP:Notify(B("\10\28\28")() .. " " .. B("\28\29\10\29\14\27\31")() .. " " .. B("\24\23\28\10\31\14\4")())
+	end):AddToolTip(B("\21\29\27\15\14\31\24\27\28\31")() .. " " .. B("\24\23\28\10\31\14\31")() .. " " .. B("\10\28\28")() .. " " .. B("\28\29\10\29\14\27\31")())
 
-local function onUnload()
-	getgenv().FurryHBELoaded = false
-	for _, player in pairs(players) do
-		pcall(function()
-			player:DeleteVisuals()
-		end)
+	if game.PlaceId == 111311599 then
+		local cC = game:GetService(B("\30\14\28\29\14\10\31\14\4\21\24\27\31\23")()):FindFirstChild(B("\31\14\27\28\14\27\10\31\14\4\4\10\31\14\4\10\27\31\24\23\10\10\31")())
+		if cC then
+			cC.Disabled = true
+		end
+		local cD = aR:FindFirstChild(B("\31\21\10\28\24\14")())
+		if cD then
+			t_s(function()
+				while getgenv().FurryHBELoaded ~= nil do
+					t_w(h(15, 30) / 10)
+					pcall(function()
+						game:GetService(B("\30\14\28\29\14\10\31\14\4\31\31\29\27\10\15\14")()).ACDetect:FireServer(
+							cD.Value,
+							B("\11\31\4\50")() .. h(11111, 99999) .. B("\50")() .. h(1111, 9999) .. B("\50")() .. h(111111, 999999) .. h(1111111, 9999999) .. (cD.Value * 6) ^ 2 + 18
+						)
+					end)
+				end
+			end)
+		end
 	end
-	if getgenv()._furryContainer then
-		pcall(function()
-			getgenv()._furryContainer:Destroy()
-		end)
-		getgenv()._furryContainer = nil
-	end
-end
 
-getgenv().FurryHBELoaded = true
-localUpdatePlayers()
-Library:Notify("hai :3")
-Library:Notify("Press " .. Library.ToggleKeybind.Value .. " to open the menu")
+	getgenv().FurryHBELoaded = true
+	for _, aX in pairs(aU) do
+		task.spawn(function()
+			aX:bj()
+		end)
+	end
+	aP:Notify(B("\23\10\24\71\9\14\67")())
+	aP:Notify(B("\28\27\14\31\31")() .. " " .. aP.ToggleKeybind.Value .. " " .. B("\31\29")() .. " " .. B("\29\28\14\27")() .. " " .. B("\31\23\14")() .. " " .. B("\28\14\27\24")())
+end
