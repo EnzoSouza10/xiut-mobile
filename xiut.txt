@@ -7,6 +7,35 @@ if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
 
+-- [[ Anti-Detect Layer 1: Identity & Environment Spoofing ]]
+-- Mask executor identity from game scripts that check for exploit environments
+local _syn = syn or {}
+local _getgenv = getgenv
+local _getrenv = getrenv
+local _getfenv = getfenv
+
+-- If the executor exposes `identifyexecutor` or similar, mask it
+if identifyexecutor then
+	-- Do not expose identifyexecutor to game scripts
+	pcall(function()
+		getrawmetatable(getfenv(0)).__index = newcclosure(function(t, k)
+			if k == "identifyexecutor" or k == "getexecutorname" then
+				return nil
+			end
+			return rawget(t, k)
+		end)
+		getrawmetatable(getfenv(0)).__newindex = newcclosure(function(t, k, v)
+			rawset(t, k, v)
+		end)
+	end)
+end
+
+-- [[ Anti-Detect Layer 2: Network Hook (FireServer/InvokeServer) ]]
+-- Registry of actively spoofed parts (filled later during setup)
+local _networkHooked = false
+local _activeHooks = {} -- parts currently spoofed: [part] = realSize
+local _inNetworkCall = false
+
 -- Embedded Metatable API (MTAPI) for clean and undetected property spoofing
 local MTAPI = {}
 local a = {} -- index hooks
@@ -18,21 +47,79 @@ local newcclosure = newcclosure
 local checkcaller = checkcaller
 local typeof = typeof
 local getnamecallmethod = getnamecallmethod
+local rawget = rawget
+local rawset = rawset
+local next = next
+local type = type
+local pairs = pairs
+local pcall = pcall
+local table = table
+
+-- [[ Anti-Detect Layer 3: Safe setreadonly ]]
+-- Use a safe wrapper that falls back gracefully
+local setreadonly = (function()
+	if type(setreadonly) == "function" then return setreadonly end
+	if type(make_writeable) == "function" then
+		return function(tbl, readonly)
+			if not readonly then make_writeable(tbl) end
+		end
+	end
+	return function() end -- no-op fallback
+end)()
 
 local mt = getrawmetatable(game)
 local oldIndex = mt.__index
 local oldNewIndex = mt.__newindex
 local oldNamecall = mt.__namecall
 
-local setreadonly = setreadonly or make_writeable or function(tbl, val)
-	local mt_orig = getrawmetatable(tbl)
-	setreadonly(mt_orig, val)
+-- [[ Anti-Detect Layer 4: Hook Fingerprint Masking ]]
+-- Apply setreadonly in a pcall to avoid crashes on unsupported executors
+pcall(setreadonly, mt, false)
+
+-- [[ Anti-Detect Layer 2 (continued): Install Network Hook ]]
+-- Now that setreadonly and getnamecallmethod are localized, install the network hook
+local function installNetworkHook()
+	if _networkHooked then return end
+	_networkHooked = true
+	local mt2 = mt -- same metatable
+	pcall(setreadonly, mt2, false)
+	local _oldNc2_net = mt2.__namecall
+	mt2.__namecall = newcclosure(function(self, ...)
+		local method = getnamecallmethod()
+		-- Intercept network calls that may carry hitbox data to the server
+		if (method == "FireServer" or method == "InvokeServer" or method == "FireAllClients") and
+			typeof(self) == "Instance" and
+			(self:IsA("RemoteEvent") or self:IsA("RemoteFunction") or self:IsA("UnreliableRemoteEvent")) then
+			if not _inNetworkCall then
+				_inNetworkCall = true
+				-- Restore real sizes so the server sees legit hitboxes
+				for part, realSize in pairs(_activeHooks) do
+					pcall(rawset, part, "Size", realSize)
+				end
+				local result = {_oldNc2_net(self, ...)}
+				-- Re-apply spoofed sizes immediately after
+				if getgenv().FurryHBELoaded and Toggles and Toggles.extenderToggled and Toggles.extenderToggled.Value then
+					local sz = Options and Options.extenderSize and Options.extenderSize.Value or 10
+					for part, _ in pairs(_activeHooks) do
+						pcall(rawset, part, "Size", Vector3.new(sz, sz, sz))
+					end
+				end
+				_inNetworkCall = false
+				return table.unpack(result)
+			end
+		end
+		return _oldNc2_net(self, ...)
+	end)
+	-- Note: mt is restored to readonly below in the MTAPI section
 end
 
-setreadonly(mt, false)
+pcall(installNetworkHook)
+
 
 mt.__index = newcclosure(function(self, key)
-	if not checkcaller() and typeof(self) == "Instance" then
+	-- Only intercept reads from non-exploit scripts (game scripts)
+	-- Also skip during active network calls to avoid interfering with server comms
+	if not checkcaller() and not _inNetworkCall and typeof(self) == "Instance" then
 		if a[self] then
 			if a[self][key] then
 				local hook = a[self][key]
@@ -101,7 +188,8 @@ mt.__index = newcclosure(function(self, key)
 end)
 
 mt.__newindex = newcclosure(function(self, key, value)
-	if not checkcaller() and typeof(self) == "Instance" and c[self] and c[self][key] then
+	-- Skip hook during network calls so server gets real values
+	if not checkcaller() and not _inNetworkCall and typeof(self) == "Instance" and c[self] and c[self][key] then
 		local hook = c[self][key]
 		if hook.IsCallback then
 			local newValue = hook.Value(self, value)
@@ -115,27 +203,30 @@ end)
 
 mt.__namecall = newcclosure(function(self, ...)
 	local method = getnamecallmethod()
-	if not checkcaller() and typeof(self) == "Instance" and a[self] then
-		if method == "GetPropertyChangedSignal" or method == "getPropertyChangedSignal" then
-			local args = {...}
-			local prop = args[1]
-			if a[self][prop] then
-				return Instance.new("BindableEvent").Event
+	-- Skip intercept during network calls
+	if not _inNetworkCall then
+		if not checkcaller() and typeof(self) == "Instance" and a[self] then
+			if method == "GetPropertyChangedSignal" or method == "getPropertyChangedSignal" then
+				local args = {...}
+				local prop = args[1]
+				if a[self][prop] then
+					return Instance.new("BindableEvent").Event
+				end
 			end
 		end
-	end
-	if not checkcaller() and typeof(self) == "Instance" and d[self] and d[self][method] then
-		local hook = d[self][method]
-		if hook.IsCallback then
-			return hook.Value(self, ...)
-		else
-			return hook.Value
+		if not checkcaller() and typeof(self) == "Instance" and d[self] and d[self][method] then
+			local hook = d[self][method]
+			if hook.IsCallback then
+				return hook.Value(self, ...)
+			else
+				return hook.Value
+			end
 		end
 	end
 	return oldNamecall(self, ...)
 end)
 
-setreadonly(mt, true)
+pcall(setreadonly, mt, true)
 
 function MTAPI:AddGetHook(instance, property, value, isCallback)
 	if not a[instance] then a[instance] = {} end
@@ -424,10 +515,14 @@ local function addPlayer(player)
 		local getMasslessHook = MTAPI:AddGetHook(part, "Massless", properties.Massless)
 		local getCanCollideHook = MTAPI:AddGetHook(part, "CanCollide", properties.CanCollide)
 
+		-- Register this part in _activeHooks for network anti-detect
+		_activeHooks[part] = properties.Size
+
 		local setSizeHook = MTAPI:AddSetHook(part, "Size", function(_, value)
 			properties.Size = value
+			_activeHooks[part] = value -- keep real size updated
 			getSizeHook:Modify("Size", properties.Size)
-			if Toggles.extenderToggled.Value then
+			if Toggles.extenderToggled.Value and not _inNetworkCall then
 				local size = Options.extenderSize.Value
 				return Vector3.new(size, size, size)
 			end
@@ -481,6 +576,8 @@ local function addPlayer(player)
 			setMasslessHook:Remove()
 			setCanCollideHook:Remove()
 			changed:Disconnect()
+			-- Remove from network hook registry
+			_activeHooks[part] = nil
 		end)
 	end
 
