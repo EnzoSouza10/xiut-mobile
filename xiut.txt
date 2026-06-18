@@ -7,124 +7,189 @@ if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
 
-local hookmetamethod = hookmetamethod or function(tbl, name, func)
-	local mt = getrawmetatable(tbl)
-	local old = mt[name]
-	setreadonly(mt, false)
-	mt[name] = func
-	setreadonly(mt, true)
-	return old
+-- Embedded Metatable API (MTAPI) for clean and undetected property spoofing
+local MTAPI = {}
+local a = {} -- index hooks
+local c = {} -- newindex hooks
+local d = {} -- namecall hooks
+
+local getrawmetatable = getrawmetatable
+local newcclosure = newcclosure
+local checkcaller = checkcaller
+local typeof = typeof
+local getnamecallmethod = getnamecallmethod
+
+local mt = getrawmetatable(game)
+local oldIndex = mt.__index
+local oldNewIndex = mt.__newindex
+local oldNamecall = mt.__namecall
+
+local setreadonly = setreadonly or make_writeable or function(tbl, val)
+	local mt_orig = getrawmetatable(tbl)
+	setreadonly(mt_orig, val)
 end
 
-local trackedParts = {}
+setreadonly(mt, false)
 
-local oldIndex
-oldIndex = hookmetamethod(game, "__index", newcclosure(function(self, key)
-	if not checkcaller() and typeof(self) == "Instance" and trackedParts[self] then
-		local original = trackedParts[self]
-		if key == "Size" then
-			return original.Size
-		elseif key == "Transparency" then
-			return original.Transparency
-		elseif key == "CanCollide" then
-			return original.CanCollide
-		elseif key == "Massless" then
-			return original.Massless
-		elseif key == "Mass" then
-			return original.Mass
-		elseif key == "Changed" then
-			local realSignal = oldIndex(self, "Changed")
-			local fakeSignal = {}
-			function fakeSignal:Connect(...)
-				local args = {...}
-				local callback = args[1]
-				if #args >= 2 and type(args[1]) == "table" then
-					callback = args[2]
+mt.__index = newcclosure(function(self, key)
+	if not checkcaller() and typeof(self) == "Instance" then
+		if a[self] then
+			if a[self][key] then
+				local hook = a[self][key]
+				if hook.IsCallback then
+					return hook.Value(self, oldIndex(self, key)) or oldIndex(self, key)
+				else
+					return hook.Value or oldIndex(self, key)
 				end
-				return realSignal:Connect(function(prop)
-					if prop == "Size" or prop == "Transparency" or prop == "CanCollide" or prop == "Massless" or prop == "Mass" then
-						return
+			elseif key == "Changed" then
+				local realSignal = oldIndex(self, "Changed")
+				local fakeSignal = {}
+				function fakeSignal:Connect(...)
+					local args = {...}
+					local callback = args[1]
+					if #args >= 2 and type(args[1]) == "table" then
+						callback = args[2]
 					end
-					return callback(prop)
-				end)
-			end
-			fakeSignal.connect = fakeSignal.Connect
-			function fakeSignal:Once(...)
-				local args = {...}
-				local callback = args[1]
-				if #args >= 2 and type(args[1]) == "table" then
-					callback = args[2]
+					return realSignal:Connect(function(prop)
+						if a[self] and a[self][prop] then
+							return
+						end
+						return callback(prop)
+					end)
 				end
-				local connection
-				connection = realSignal:Connect(function(prop)
-					if prop == "Size" or prop == "Transparency" or prop == "CanCollide" or prop == "Massless" or prop == "Mass" then
-						return
+				fakeSignal.connect = fakeSignal.Connect
+				function fakeSignal:Once(...)
+					local args = {...}
+					local callback = args[1]
+					if #args >= 2 and type(args[1]) == "table" then
+						callback = args[2]
 					end
-					connection:Disconnect()
-					return callback(prop)
-				end)
-				return connection
-			end
-			fakeSignal.once = fakeSignal.Once
-			function fakeSignal:Wait()
-				while true do
-					local prop = realSignal:Wait()
-					if prop ~= "Size" and prop ~= "Transparency" and prop ~= "CanCollide" and prop ~= "Massless" and prop ~= "Mass" then
-						return prop
+					local connection
+					connection = realSignal:Connect(function(prop)
+						if a[self] and a[self][prop] then
+							return
+						end
+						connection:Disconnect()
+						return callback(prop)
+					end)
+					return connection
+				end
+				fakeSignal.once = fakeSignal.Once
+				function fakeSignal:Wait()
+					while true do
+						local prop = realSignal:Wait()
+						if not (a[self] and a[self][prop]) then
+							return prop
+						end
 					end
 				end
-			end
-			fakeSignal.wait = fakeSignal.Wait
-			return fakeSignal
-		elseif key == "GetMass" or key == "getMass" then
-			return function(instance)
-				local inst = instance or self
-				return trackedParts[inst] and trackedParts[inst].Mass or oldIndex(inst, "Mass")
-			end
-		elseif key == "GetPropertyChangedSignal" or key == "getPropertyChangedSignal" then
-			return function(instance, prop)
-				local inst = instance or self
-				if prop == "Size" or prop == "Transparency" or prop == "CanCollide" or prop == "Massless" or prop == "Mass" then
-					return Instance.new("BindableEvent").Event
+				fakeSignal.wait = fakeSignal.Wait
+				return fakeSignal
+			elseif key == "GetPropertyChangedSignal" or key == "getPropertyChangedSignal" then
+				return function(instance, prop)
+					local inst = instance or self
+					if a[inst] and a[inst][prop] then
+						return Instance.new("BindableEvent").Event
+					end
+					local realFunc = oldIndex(inst, "GetPropertyChangedSignal")
+					return realFunc(inst, prop)
 				end
-				local realFunc = oldIndex(inst, "GetPropertyChangedSignal")
-				return realFunc(inst, prop)
 			end
 		end
 	end
 	return oldIndex(self, key)
-end))
+end)
 
-local oldNewIndex
-oldNewIndex = hookmetamethod(game, "__newindex", newcclosure(function(self, key, value)
-	if not checkcaller() and typeof(self) == "Instance" and trackedParts[self] then
-		local original = trackedParts[self]
-		if original[key] ~= nil then
-			original[key] = value
-			if original.Active then
-				return
-			end
+mt.__newindex = newcclosure(function(self, key, value)
+	if not checkcaller() and typeof(self) == "Instance" and c[self] and c[self][key] then
+		local hook = c[self][key]
+		if hook.IsCallback then
+			local newValue = hook.Value(self, value)
+			return oldNewIndex(self, key, newValue or value)
+		else
+			return oldNewIndex(self, key, hook.Value or value)
 		end
 	end
 	return oldNewIndex(self, key, value)
-end))
+end)
 
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+mt.__namecall = newcclosure(function(self, ...)
 	local method = getnamecallmethod()
-	if not checkcaller() and typeof(self) == "Instance" and trackedParts[self] then
+	if not checkcaller() and typeof(self) == "Instance" and a[self] then
 		if method == "GetPropertyChangedSignal" or method == "getPropertyChangedSignal" then
 			local args = {...}
 			local prop = args[1]
-			if prop == "Size" or prop == "Transparency" or prop == "CanCollide" or prop == "Massless" or prop == "Mass" then
+			if a[self][prop] then
 				return Instance.new("BindableEvent").Event
 			end
-		elseif method == "GetMass" or method == "getMass" then
-			return trackedParts[self].Mass
+		end
+	end
+	if not checkcaller() and typeof(self) == "Instance" and d[self] and d[self][method] then
+		local hook = d[self][method]
+		if hook.IsCallback then
+			return hook.Value(self, ...)
+		else
+			return hook.Value
 		end
 	end
 	return oldNamecall(self, ...)
-end))
+end)
+
+setreadonly(mt, true)
+
+function MTAPI:AddGetHook(instance, property, value, isCallback)
+	if not a[instance] then a[instance] = {} end
+	a[instance][property] = {Value = value, IsCallback = isCallback}
+	return {
+		Remove = function()
+			if a[instance] then
+				a[instance][property] = nil
+				if next(a[instance]) == nil then a[instance] = nil end
+			end
+		end,
+		Modify = function(_, prop, val, isCb)
+			if a[instance] then
+				a[instance][prop] = {Value = val, IsCallback = isCb}
+			end
+		end
+	}
+end
+
+function MTAPI:AddSetHook(instance, property, value, isCallback)
+	if not c[instance] then c[instance] = {} end
+	c[instance][property] = {Value = value, IsCallback = isCallback}
+	return {
+		Remove = function()
+			if c[instance] then
+				c[instance][property] = nil
+				if next(c[instance]) == nil then c[instance] = nil end
+			end
+		end,
+		Modify = function(_, prop, val, isCb)
+			if c[instance] then
+				c[instance][prop] = {Value = val, IsCallback = isCb}
+			end
+		end
+	}
+end
+
+function MTAPI:AddCallHook(instance, method, value, isCallback)
+	if not d[instance] then d[instance] = {} end
+	d[instance][method] = {Value = value, IsCallback = isCallback}
+	return {
+		Remove = function()
+			if d[instance] then
+				d[instance][method] = nil
+				if next(d[instance]) == nil then d[instance] = nil end
+			end
+		end,
+		Modify = function(_, meth, val, isCb)
+			if d[instance] then
+				d[instance][meth] = {Value = val, IsCallback = isCb}
+			end
+		end
+	}
+end
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/RectangularObject/LinoriaLib/main/Library.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/RectangularObject/LinoriaLib/main/addons/SaveManager.lua"))()
@@ -230,6 +295,7 @@ local function addPlayer(player)
 	players[player] = {}
 	local playerIdx = players[player]
 	local playerChar = player.Character
+	local defaultProperties = {}
 
 	local function isTeammate()
 		if game.GameId == 718936923 then -- Neighborhood War
@@ -346,18 +412,59 @@ local function addPlayer(player)
 
 	local debounce = false
 	local function setup(part)
-		trackedParts[part] = {
-			Size = part.Size,
-			Transparency = part.Transparency,
-			Massless = part.Massless,
-			CanCollide = part.CanCollide,
-			Mass = part.Mass,
-			Active = false
-		}
-		local properties = trackedParts[part]
-		local changed = part.Changed:Connect(function(property)
+		defaultProperties[part.Name] = {}
+		local properties = defaultProperties[part.Name]
+		properties.Size = part.Size
+		properties.Transparency = part.Transparency
+		properties.Massless = part.Massless
+		properties.CanCollide = part.CanCollide
+		properties.CollisionGroupId = part.CollisionGroupId
+		local getSizeHook = MTAPI:AddGetHook(part, "Size", properties.Size)
+		local getTransparencyHook = MTAPI:AddGetHook(part, "Transparency", properties.Transparency)
+		local getMasslessHook = MTAPI:AddGetHook(part, "Massless", properties.Massless)
+		local getCanCollideHook = MTAPI:AddGetHook(part, "CanCollide", properties.CanCollide)
+
+		local setSizeHook = MTAPI:AddSetHook(part, "Size", function(_, value)
+			properties.Size = value
+			getSizeHook:Modify("Size", properties.Size)
+			if Toggles.extenderToggled.Value then
+				local size = Options.extenderSize.Value
+				return Vector3.new(size, size, size)
+			end
+			return properties.Size
+		end, true)
+		local setTransparencyHook = MTAPI:AddSetHook(part, "Transparency", function(_, value)
+			properties.Transparency = value
+			getTransparencyHook:Modify("Transparency", properties.Transparency)
+			if Toggles.extenderToggled.Value then
+				return Options.extenderTransparency.Value
+			end
+			return properties.Transparency
+		end, true)
+		local setMasslessHook = MTAPI:AddSetHook(part, "Massless", function(_, value)
+			properties.Massless = value
+			getMasslessHook:Modify("Massless", properties.Massless)
+			if Toggles.extenderToggled.Value then
+				if part.Name ~= "HumanoidRootPart" then
+					return true
+				end
+			end
+			return properties.Massless
+		end, true)
+		local setCanCollideHook = MTAPI:AddSetHook(part, "CanCollide", function(_, value)
+			properties.CanCollide = value
+			getCanCollideHook:Modify("CanCollide", properties.CanCollide)
+			if Toggles.extenderToggled.Value and not Toggles.collisionsToggled.Value then
+				if part.Name == "Head" or part.Name == "HumanoidRootPart" then
+					return false
+				end
+			end
+			return properties.CanCollide
+		end, true)
+
+		local changed = part.Changed:Connect(function(property) -- __namecall isn't replicated to the client when called from a serverscript
 			if debounce then return end
-			if properties[property] ~= nil then
+			if properties[property] then
 				if properties[property] ~= part[property] then
 					properties[property] = part[property]
 				end
@@ -365,8 +472,15 @@ local function addPlayer(player)
 			end
 		end)
 		part.Destroying:Connect(function()
+			getSizeHook:Remove()
+			getTransparencyHook:Remove()
+			getMasslessHook:Remove()
+			getCanCollideHook:Remove()
+			setSizeHook:Remove()
+			setTransparencyHook:Remove()
+			setMasslessHook:Remove()
+			setCanCollideHook:Remove()
 			changed:Disconnect()
-			trackedParts[part] = nil
 		end)
 	end
 
@@ -385,20 +499,17 @@ local function addPlayer(player)
 	end
 
 	local function resize(part)
-		if not trackedParts[part] then
+		if not defaultProperties[part.Name] then
 			setup(part)
 		end
-		local original = trackedParts[part]
 		if Toggles.extenderToggled.Value and isActive(part) and not isIgnored() and not isSitting() and not isFFed() and not isDead() then
-			debounce = true
-			original.Active = true
 			if part.Name ~= "HumanoidRootPart" then
 				part.Massless = true
 			end
 			if not Toggles.collisionsToggled.Value then
 				part.CanCollide = false
 			else
-				part.CanCollide = original.CanCollide
+				part.CanCollide = defaultProperties[part.Name].CanCollide
 			end
 			local size = Options.extenderSize.Value
 			part.Size = Vector3.new(size, size, size)
@@ -409,31 +520,29 @@ local function addPlayer(player)
 					face.Transparency = Options.extenderTransparency.Value
 				end
 			end
-			debounce = false
 		else
-			debounce = true
-			original.Active = false
-			part.Massless = original.Massless
-			part.CanCollide = original.CanCollide
-			part.Size = original.Size
-			part.Transparency = original.Transparency
+			part.Massless = defaultProperties[part.Name].Massless
+			part.CanCollide = defaultProperties[part.Name].CanCollide
+			part.Size = defaultProperties[part.Name].Size
+			part.Transparency = defaultProperties[part.Name].Transparency
 			if part.Name == "Head" then
 				local face = part:FindFirstChild("face")
 				if face then
-					face.Transparency = original.Transparency
+					face.Transparency = defaultProperties["Head"].Transparency
 				end
 			end
-			debounce = false
 		end
 	end
 
 	function playerIdx:Update()
 		if not playerChar then return end
+		debounce = true
 		for _, v in pairs(playerChar:GetChildren()) do
 			if v:IsA("BasePart") then
 				resize(v)
 			end
 		end
+		debounce = false
 	end
 
 	-- esp
@@ -541,6 +650,7 @@ local function addPlayer(player)
 	player.CharacterAdded:Connect(function(character)
 		--print(player, "spawned")
 		playerChar = character
+		defaultProperties = {}
 		if WaitForFullChar(character) then
 			playerIdx:Update()
 			local humanoid = character:FindFirstChildWhichIsA("Humanoid")
@@ -588,12 +698,8 @@ local function addPlayer(player)
 	end)
 	player.CharacterRemoving:Connect(function()
 		--print(player, "despawned")
-		if playerChar then
-			for _, v in pairs(playerChar:GetChildren()) do
-				if trackedParts[v] then
-					trackedParts[v] = nil
-				end
-			end
+		if playerIdx then
+			defaultProperties = {}
 		end
 	end)
 	player:GetPropertyChangedSignal("Team"):Connect(function(team)
