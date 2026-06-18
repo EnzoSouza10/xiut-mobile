@@ -1,0 +1,975 @@
+if getgenv().FurryHBELoaded ~= nil then
+	return
+end
+getgenv().FurryHBELoaded = false
+
+task.wait(math.random(3, 12) / 10)
+
+if not game:IsLoaded() then
+	game.Loaded:Wait()
+end
+
+task.wait(math.random(1, 5) / 10)
+
+--------------------------------------------------------------------
+-- MOBILE-COMPATIBLE ANTI-BAN / ANTI-DETECTION LAYER
+--------------------------------------------------------------------
+
+local spoofedServices = setmetatable({}, {
+	__index = function(_, k)
+		return game:GetService(k)
+	end,
+	__metatable = nil
+})
+
+-- Anti-debug simplificado para mobile
+local function antiDebug()
+	local results = 0
+
+	pcall(function()
+		local ffc = getfenv()
+		if ffc.script and ffc.script:GetFullName() ~= "CoreGui" then
+			results = results + 1
+		end
+	end)
+
+	pcall(function()
+		local t1 = tick()
+		local _ = {}
+		for _ = 1, 500 do end
+		local t2 = tick()
+		if t2 - t1 > 0.1 then
+			results = results + 1
+		end
+	end)
+
+	pcall(function()
+		if getfenv().script and getfenv().script.Source then
+			if not getfenv().script.Source:find("FurryHBE", 1, true) then
+				results = results + 1
+			end
+		end
+	end)
+
+	return results >= 2
+end
+
+-- Heartbeat anti-kick
+local heartbeatConn
+heartbeatConn = spoofedServices.RunService.Heartbeat:Connect(function()
+	if antiDebug() then
+		if heartbeatConn then
+			heartbeatConn:Disconnect()
+		end
+		getgenv().FurryHBELoaded = false
+		return
+	end
+	task.wait(math.random(5, 15) / 10)
+	pcall(function()
+		local vu = spoofedServices.VirtualUser
+		vu:CaptureController()
+		vu:ClickButton2(Vector2.new())
+	end)
+end)
+
+-- Anti-ban: destroy/hook suspicious remotes
+local function blockSuspiciousRemotes()
+	task.spawn(function()
+		local patt = "ban|kick|anticheat|ac.?detect|admin|punish|moderate|cheat|exploit|hack|inject|detect|flag|report|abuse|mute|warn|freeze"
+		while getgenv().FurryHBELoaded ~= nil and getgenv().FurryHBELoaded do
+			task.wait(math.random(8, 20))
+			pcall(function()
+				for _, v in pairs(spoofedServices.ReplicatedStorage:GetDescendants()) do
+					if (v:IsA("RemoteEvent") or v:IsA("RemoteFunction")) then
+						local name = v.Name:lower()
+						if name:find(patt) then
+							v:Destroy()
+						end
+					end
+				end
+			end)
+		end
+	end)
+end
+task.spawn(blockSuspiciousRemotes)
+
+-- Anti-ban: Hide in CoreGui (mobile-compatible)
+local function createSecureContainer()
+	task.spawn(function()
+		task.wait(math.random(5, 15) / 10)
+		pcall(function()
+			local gui = Instance.new("ScreenGui")
+			gui.Name = string.char(math.random(65, 90)) .. string.char(math.random(65, 90)) .. string.char(math.random(65, 90)) .. tostring(math.random(1000, 9999))
+			gui.ResetOnSpawn = false
+			gui.IgnoreGuiInset = true
+			gui.ScreenInsets = Enum.ScreenInsets.None
+			gui.DisplayOrder = 999999
+			gui.Parent = spoofedServices.CoreGui
+
+			local frame = Instance.new("Frame")
+			frame.Name = "f" .. tostring(math.random(1000, 9999))
+			frame.BackgroundTransparency = 1
+			frame.Size = UDim2.new(0, 0, 0, 0)
+			frame.Parent = gui
+
+			local container = Instance.new("Folder")
+			container.Name = "c" .. tostring(math.random(10000, 99999))
+			container.Parent = frame
+
+			getgenv()._furryContainer = container
+		end)
+	end)
+end
+createSecureContainer()
+
+-- Mobile ESP: usa BillboardGui em vez de Drawing (Drawing nao existe em mobile)
+local function createMobileNameTag()
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "N" .. tostring(math.random(10000, 99999))
+	billboard.ResetOnSpawn = false
+	billboard.Size = UDim2.new(0, 200, 0, 30)
+	billboard.StudsOffset = Vector3.new(0, 3, 0)
+	billboard.AlwaysOnTop = true
+	billboard.ClipsDescendants = false
+	billboard.Enabled = false
+
+	local label = Instance.new("TextLabel")
+	label.Name = "L"
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.TextSize = 16
+	label.TextStrokeTransparency = 0
+	label.TextStrokeColor3 = Color3.new(0, 0, 0)
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.Text = ""
+	label.Font = Enum.Font.SourceSansBold
+	label.Parent = billboard
+
+	pcall(function()
+		if getgenv()._furryContainer then
+			billboard.Parent = getgenv()._furryContainer
+		else
+			billboard.Parent = spoofedServices.CoreGui
+		end
+	end)
+
+	return billboard
+end
+
+-- Secure wrapper for Highlight
+local function createSecureHighlight()
+	local hl = Instance.new("Highlight")
+	hl.Enabled = false
+	hl.Name = "H" .. tostring(math.random(10000, 99999))
+	hl.FillTransparency = 0.5 + math.random() * 0.5
+	hl.OutlineTransparency = 0.5 + math.random() * 0.5
+	pcall(function()
+		if getgenv()._furryContainer then
+			hl.Parent = getgenv()._furryContainer
+		else
+			hl.Parent = spoofedServices.CoreGui
+		end
+	end)
+	return hl
+end
+
+-- Periodic cleanup
+local function periodicCleanup()
+	task.spawn(function()
+		while getgenv().FurryHBELoaded ~= nil and getgenv().FurryHBELoaded do
+			task.wait(math.random(30, 90))
+			pcall(function()
+				local stats = spoofedServices.Stats
+				if stats and stats.ClearOutput then
+					stats:ClearOutput()
+				end
+			end)
+			pcall(function()
+				if getgenv()._furryContainer and getgenv()._furryContainer.Parent then
+					getgenv()._furryContainer.Parent.DisplayOrder = math.random(1, 999999)
+				end
+			end)
+		end
+	end)
+end
+periodicCleanup()
+
+-- Protected HTTP loader for mobile (apenas game:HttpGet, sem syn.request)
+local function secureLoad(url, ...)
+	local maxRetries = 4
+	for attempt = 1, maxRetries do
+		local success, result = pcall(function()
+			task.wait(math.random(1, 5) / 10)
+			return game:HttpGet(url, true)
+		end)
+		if success and result then
+			local fn, err = loadstring(result)
+			if fn then
+				return fn(...)
+			end
+		end
+		task.wait(math.random(8, 20) / 10)
+	end
+	return nil
+end
+
+if not getgenv().MTAPIMutex then
+	secureLoad("https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua")
+end
+
+local Library = secureLoad("https://raw.githubusercontent.com/RectangularObject/LinoriaLib/main/Library.lua")
+local SaveManager = secureLoad("https://raw.githubusercontent.com/RectangularObject/LinoriaLib/main/addons/SaveManager.lua")
+SaveManager:SetLibrary(Library)
+SaveManager:SetFolder("FurryHBE")
+
+local Teams = spoofedServices.Teams
+local Players = spoofedServices.Players
+local RunService = spoofedServices.RunService
+local Workspace = spoofedServices.Workspace
+local ReplicatedStorage = spoofedServices.ReplicatedStorage
+local CoreGui = spoofedServices.CoreGui
+local VirtualUser = spoofedServices.VirtualUser
+local lPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+local WorldToViewportPoint = Camera.WorldToViewportPoint
+local players = {}
+local teamModule = nil
+
+local function localUpdatePlayers()
+	for _, v in pairs(players) do
+		task.spawn(function()
+			v:Update()
+		end)
+	end
+end
+
+-- Fallback: usa RenderStepped se BindToRenderStep nao existir (alguns executors mobile)
+local bindOk = pcall(function()
+	RunService:BindToRenderStep("furryWalls", Enum.RenderPriority.Camera.Value - 1, function() end)
+	RunService:UnbindFromRenderStep("furryWalls")
+end)
+
+if bindOk then
+	RunService:BindToRenderStep("furryWalls", Enum.RenderPriority.Camera.Value - 1, function()
+		if not getgenv().FurryHBELoaded then return end
+		Camera = Workspace.CurrentCamera
+		if not Camera then return end
+		WorldToViewportPoint = Camera.WorldToViewportPoint
+		for _, v in pairs(players) do
+			task.spawn(function()
+				v:UpdateESP()
+			end)
+		end
+	end)
+else
+	RunService.RenderStepped:Connect(function()
+		if not getgenv().FurryHBELoaded then return end
+		Camera = Workspace.CurrentCamera
+		if not Camera then return end
+		WorldToViewportPoint = Camera.WorldToViewportPoint
+		for _, v in pairs(players) do
+			task.spawn(function()
+				v:UpdateESP()
+			end)
+		end
+	end)
+end
+
+local mainWindow = Library:CreateWindow("Squares' Hitbox Extender")
+local mainTab = mainWindow:AddTab("Main")
+local mainGroupbox = mainTab:AddLeftGroupbox("Hitbox Extender")
+local espGroupbox = mainTab:AddLeftGroupbox("ESP")
+local ignoresGroupbox = mainTab:AddRightGroupbox("Ignores")
+local collisionsGroupbox = mainTab:AddRightGroupbox("Collisions")
+local miscGroupbox = mainTab:AddLeftGroupbox("Keybinds")
+local antiGroupbox = mainTab:AddRightGroupbox("Anti-Ban")
+
+local emergencyTab = mainWindow:AddTab("Emergency")
+local emergencyGroupbox = emergencyTab:AddLeftGroupbox("Fixes")
+
+mainGroupbox:AddToggle("extenderToggled", { Text = "Toggle" }):OnChanged(localUpdatePlayers)
+mainGroupbox:AddSlider("extenderSize", { Text = "Size", Min = 2, Max = 100, Default = 10, Rounding = 1 }):OnChanged(localUpdatePlayers)
+mainGroupbox:AddSlider("extenderTransparency", { Text = "Transparency", Min = 0, Max = 1, Default = 0.5, Rounding = 2 }):OnChanged(localUpdatePlayers)
+mainGroupbox:AddInput("customPartName", { Text = "Custom Part Name", Default = "HeadHB" }):OnChanged(localUpdatePlayers)
+mainGroupbox:AddDropdown("extenderPartList", { Text = "Body Parts", AllowNull = true, Multi = true, Values = { "Custom Part", "Head", "HumanoidRootPart", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg" }, Default = "HumanoidRootPart" }):OnChanged(localUpdatePlayers)
+
+espGroupbox:AddToggle("espNameToggled", { Text = "Name" }):AddColorPicker("espNameColor1", { Title = "Fill Color", Default = Color3.fromRGB(255, 255, 255) }):AddColorPicker("espNameColor2", { Title = "Outline Color", Default = Color3.fromRGB(0, 0, 0) })
+Toggles.espNameToggled:OnChanged(localUpdatePlayers)
+Options.espNameColor1:OnChanged(localUpdatePlayers)
+Options.espNameColor2:OnChanged(localUpdatePlayers)
+espGroupbox:AddToggle("espNameUseTeamColor", { Text = "Use Team Color For Name" }):OnChanged(localUpdatePlayers)
+espGroupbox:AddDropdown("espNameType", { Text = "Name Type", AllowNull = false, Multi = false, Values = { "Display Name", "Account Name" }, Default = "Display Name" }):OnChanged(localUpdatePlayers)
+espGroupbox:AddToggle("espHighlightToggled", { Text = "Chams" }):AddColorPicker("espHighlightColor1", { Title = "Fill Color", Default = Color3.fromRGB(0, 0, 0) }):AddColorPicker("espHighlightColor2", { Title = "Outline Color", Default = Color3.fromRGB(0, 0, 0) })
+Toggles.espHighlightToggled:OnChanged(localUpdatePlayers)
+Options.espHighlightColor1:OnChanged(localUpdatePlayers)
+Options.espHighlightColor2:OnChanged(localUpdatePlayers)
+espGroupbox:AddToggle("espHighlightUseTeamColor", { Text = "Use Team Color For Chams" }):OnChanged(localUpdatePlayers)
+espGroupbox:AddDropdown("espHighlightDepthMode", { Text = "Chams Depth Mode", AllowNull = false, Multi = false, Values = { "Occluded", "AlwaysOnTop" }, Default = "Occluded" }):OnChanged(localUpdatePlayers)
+espGroupbox:AddSlider("espHighlightFillTransparency", { Text = "Chams Fill Transparency", Min = 0, Max = 1, Default = 0.5, Rounding = 2 }):OnChanged(localUpdatePlayers)
+espGroupbox:AddSlider("espHighlightOutlineTransparency", { Text = "Chams Outline Transparency", Min = 0, Max = 1, Default = 0, Rounding = 2 }):OnChanged(localUpdatePlayers)
+
+miscGroupbox:AddLabel("Toggle UI"):AddKeyPicker("menuKeybind", { Default = "End", NoUI = true, Text = "Menu Keybind" })
+miscGroupbox:AddLabel("Force Update"):AddKeyPicker("forceUpdateKeybind", { Default = "Home", NoUI = true, Text = "Force Update Keybind"})
+Options.forceUpdateKeybind:OnClick(localUpdatePlayers)
+Library.ToggleKeybind = Options.menuKeybind
+
+ignoresGroupbox:AddToggle("extenderSitCheck", { Text = "Ignore Sitting Players" }):OnChanged(localUpdatePlayers)
+ignoresGroupbox:AddToggle("extenderFFCheck", { Text = "Ignore Forcefielded Players" }):OnChanged(localUpdatePlayers)
+ignoresGroupbox:AddToggle("ignoreSelectedPlayersToggled", { Text = "Ignore Selected Players" }):OnChanged(localUpdatePlayers)
+ignoresGroupbox:AddDropdown("ignorePlayerList", { Text = "Players", AllowNull = true, Multi = true, Values = {} }):OnChanged(localUpdatePlayers)
+ignoresGroupbox:AddToggle("ignoreOwnTeamToggled", { Text = "Ignore Own Team" }):OnChanged(localUpdatePlayers)
+ignoresGroupbox:AddToggle("ignoreSelectedTeamsToggled", { Text = "Ignore Selected Teams" }):OnChanged(localUpdatePlayers)
+ignoresGroupbox:AddDropdown("ignoreTeamList", { Text = "Teams", AllowNull = true, Multi = true, Values = {} }):OnChanged(localUpdatePlayers)
+
+collisionsGroupbox:AddToggle("collisionsToggled", { Text = "Enable Collisions" }):OnChanged(localUpdatePlayers)
+
+antiGroupbox:AddToggle("antiBanDestroyRemotes", { Text = "Destroy Suspicious Remotes" }):OnChanged(function()
+	if Toggles.antiBanDestroyRemotes.Value then
+		blockSuspiciousRemotes()
+	end
+end)
+antiGroupbox:AddToggle("antiBanRandomizeUpdates", { Text = "Randomize Update Timing" })
+
+SaveManager:BuildConfigSection(mainTab)
+SaveManager:LoadAutoloadConfig()
+
+local function updateList(list)
+	list:SetValues()
+	list:Display()
+end
+
+if game.GameId == 504234221 then
+	teamModule = require(ReplicatedStorage.Scripts.Modules.PlayerModule)
+end
+if game.GameId == 1934496708 then
+	teamModule = require(Workspace:WaitForChild("Teams"))
+end
+
+local mathRandom = math.random
+local tick = tick
+local pairs = pairs
+local ipairs = ipairs
+local tableInsert = table.insert
+local tableRemove = table.remove
+local tableFind = table.find
+local stringMatch = string.match
+local taskWait = task.wait
+local taskSpawn = task.spawn
+local Vector3New = Vector3.new
+local Vector2New = Vector2.new
+local Color3FromRGB = Color3.fromRGB
+
+local limbPatterns = {
+	["Left Arm"] = {"Left", "Arm", "Hand", "Forearm", "Shoulder"},
+	["Right Arm"] = {"Right", "Arm", "Hand", "Forearm", "Shoulder"},
+	["Left Leg"] = {"Left", "Leg", "Foot", "Thigh", "Calf"},
+	["Right Leg"] = {"Right", "Leg", "Foot", "Thigh", "Calf"},
+}
+
+local function addPlayer(player)
+	tableInsert(Options.ignorePlayerList.Values, player.Name)
+	updateList(Options.ignorePlayerList)
+	players[player] = {}
+	local playerIdx = players[player]
+	local playerChar = player.Character
+	local defaultProperties = {}
+
+	-- Mobile ESP: BillboardGui em vez de Drawing
+	local nameTag = createMobileNameTag()
+	local nameLabel = nameTag:FindFirstChild("L")
+	local chams = createSecureHighlight()
+
+	local isTeammate
+	isTeammate = function()
+		if game.GameId == 718936923 then
+			if not lPlayer.Character or not playerChar or not playerChar:FindFirstChild("HumanoidRootPart") then return true end
+			return lPlayer.Character.HumanoidRootPart.Color == playerChar.HumanoidRootPart.Color
+		elseif game.PlaceId == 633284182 then
+			if not player:FindFirstChild("PlayerData") or not player.PlayerData:FindFirstChild("TeamValue") then return true end
+			return lPlayer.PlayerData.TeamValue.Value == player.PlayerData.TeamValue.Value
+		elseif game.PlaceId == 2029250188 then
+			if not lPlayer.Character or not playerChar then return true end
+			return lPlayer.Character.Parent == playerChar.Parent
+		elseif game.PlaceId == 2978450615 then
+			return getrenv()._G.PlayerProfiles.Data[lPlayer.Name].Team == getrenv()._G.PlayerProfiles.Data[player.Name].Team
+		elseif game.GameId == 1934496708 then
+			if Workspace.FriendlyFire.Value then return false end
+			return (not player.Team or player.Team.Name == "LOBBY" or lPlayer.Team.Name == "LOBBY" or player.Team.Name == "Admin" or lPlayer.Team == player.Team) or
+			teamModule[lPlayer.Team.Name] == teamModule[player.Team.Name] or
+			((teamModule[lPlayer.Team.Name] == "CI" and teamModule[player.Team.Name] == "CD") or
+			(teamModule[player.Team.Name] == "CI" and teamModule[lPlayer.Team.Name] == "CD"))
+		elseif game.PlaceId == 2622527242 then
+			if not player.Team or player.Team.Name == "Intro" or player.Team.Name == "Spectator" or player.Team.Name == "Not Playing" or lPlayer.Team == player.Team then return true end
+			local lPlayerTeamName = lPlayer.Team.Name
+			local playerTeamName = player.Team.Name
+			local selfTeam
+			local playerTeam
+			if lPlayerTeamName == "Class-D Personnel" or lPlayerTeamName == "Chaos Insurgency" then
+				selfTeam = "Chads"
+			end
+			if lPlayerTeamName == "Facility Personnel" or lPlayerTeamName == "Security Department" or lPlayerTeamName == "Mobile Task Force" then
+				selfTeam = "Crayon Eaters"
+			end
+			if lPlayerTeamName == "SCPs" or lPlayerTeamName == "Serpent's Hand" then
+				selfTeam = "Menaces to Society"
+			end
+			if lPlayerTeamName == "Global Occult Coalition" then
+				selfTeam = "Who?"
+			end
+			if lPlayerTeamName == "Unusual Incidents Unit" then
+				selfTeam = "Who2?"
+			end
+			if playerTeamName == "Class-D Personnel" or playerTeamName == "Chaos Insurgency" then
+				playerTeam = "Chads"
+			end
+			if playerTeamName == "Facility Personnel" or playerTeamName == "Security Department" or playerTeamName == "Mobile Task Force" then
+				playerTeam = "Crayon Eaters"
+			end
+			if playerTeamName == "SCPs" or playerTeamName == "Serpent's Hand" then
+				playerTeam = "Menaces to Society"
+			end
+			if playerTeamName == "Global Occult Coalition" then
+				playerTeam = "Who?"
+			end
+			if playerTeamName == "Unusual Incidents Unit" then
+				selfTeam = "Who2?"
+			end
+			if selfTeam == "Who2?" or playerTeam == "Who2?" then
+				if selfTeam == "Crayon Eaters" or playerTeam == "Crayon Eaters" or selfTeam == "Who?" or playerTeam == "Who?" then
+					return true
+				end
+			end
+			return selfTeam == playerTeam
+		elseif game.PlaceId == 8770868695 then
+			if not lPlayer.Character or not playerChar or not player.Team or player.Team.Name == "Dead" or player.Team.Name == "Inactive" then return true end
+			return lPlayer.Character.Parent == playerChar.Parent
+		elseif game.PlaceId == 5884786982 then
+			if not lPlayer.Character or not playerChar then return true end
+			return lPlayer.Character.name ~= "Killer" and playerChar.Name ~= "Killer"
+		elseif game.GameId == 2162282815 then
+			if not player:FindFirstChild("SelectedTeam") then return true end
+			return player.SelectedTeam.Value == lPlayer.SelectedTeam.Value
+		elseif game.PlaceId == 1240644540 then
+			if not teamModule or not teamModule.IsPlayerSurvivor then return true end
+			return teamModule.IsPlayerSurvivor(nil, player) == true and teamModule.IsPlayerSurvivor(nil, lPlayer) == true
+		elseif game.PlaceId == 10236714118 then
+			if not player:FindFirstChild("PlayerData") or not player.PlayerData:FindFirstChild("Team") then return true end
+			return lPlayer.PlayerData.Team.Value == player.PlayerData.Team.Value
+		end
+		return lPlayer.Team == player.Team
+	end
+
+	local isDead
+	isDead = function()
+		if not playerChar then return true end
+		local humanoid = playerChar:FindFirstChildWhichIsA("Humanoid")
+		if game.PlaceId == 6172932937 then
+			return player.ragdolled.Value
+		elseif game.GameId == 718936923 then
+			return playerChar:FindFirstChild("Dead") ~= nil
+		end
+		return humanoid and humanoid:GetState() == Enum.HumanoidStateType.Dead
+	end
+
+	local isSitting
+	isSitting = function()
+		local humanoid = playerChar:FindFirstChildWhichIsA("Humanoid")
+		return Toggles.extenderSitCheck.Value and humanoid ~= nil and humanoid.Sit == true
+	end
+
+	local isFFed
+	isFFed = function()
+		if not playerChar then return false end
+		if game.PlaceId == 4991214437 or game.PlaceId == 6652350934 then
+			return playerChar.Head.Material == Enum.Material.ForceField
+		end
+		local ff = playerChar:FindFirstChildWhichIsA("ForceField")
+		return Toggles.extenderFFCheck.Value and playerChar ~= nil and ff ~= nil and ff.Visible == true
+	end
+
+	local isIgnored
+	isIgnored = function()
+		if not playerChar then return true end
+		if Toggles.ignoreOwnTeamToggled.Value and isTeammate() then return true end
+		if Toggles.ignoreSelectedTeamsToggled.Value and tableFind(Options.ignoreTeamList:GetActiveValues(), tostring(player.Team)) then return true end
+		if Toggles.ignoreSelectedPlayersToggled.Value and tableFind(Options.ignorePlayerList:GetActiveValues(), tostring(player.Name)) then return true end
+		return false
+	end
+
+	local debounce = false
+	local setCanCollideHook
+	local setup
+	setup = function(part)
+		defaultProperties[part.Name] = {}
+		local properties = defaultProperties[part.Name]
+		properties.Size = part.Size
+		properties.Transparency = part.Transparency
+		properties.Massless = part.Massless
+		properties.CanCollide = part.CanCollide
+		properties.CollisionGroupId = part.CollisionGroupId
+		local getSizeHook = part:AddGetHook("Size", properties.Size)
+		local getTransparencyHook = part:AddGetHook("Transparency", properties.Transparency)
+		local getMasslessHook = part:AddGetHook("Massless", properties.Massless)
+		local getCanCollideHook = part:AddGetHook("CanCollide", properties.CanCollide)
+		local setSizeHook = part:AddSetHook("Size", function(_, value)
+			properties.Size = value
+			getSizeHook:Modify("Size", properties.Size)
+			if Toggles.extenderToggled.Value then
+				local size = Options.extenderSize.Value
+				return Vector3New(size, size, size)
+			end
+			return properties.Size
+		end)
+		local setTransparencyHook = part:AddSetHook("Transparency", function(_, value)
+			properties.Transparency = value
+			getTransparencyHook:Modify("Transparency", properties.Transparency)
+			if Toggles.extenderToggled.Value then
+				return Options.extenderTransparency.Value
+			end
+			return properties.Transparency
+		end)
+		local setMasslessHook = part:AddSetHook("Massless", function(_, value)
+			properties.Massless = value
+			getMasslessHook:Modify("Massless", properties.Massless)
+			if Toggles.extenderToggled.Value then
+				if part.Name ~= "HumanoidRootPart" then
+					return true
+				end
+			end
+			return properties.Massless
+		end)
+		setCanCollideHook = part:AddSetHook("CanCollide", function(_, value)
+			properties.CanCollide = value
+			getCanCollideHook:Modify("CanCollide", properties.CanCollide)
+			if Toggles.extenderToggled.Value and not Toggles.collisionsToggled.Value then
+				if part.Name == "Head" or part.Name == "HumanoidRootPart" then
+					return false
+				end
+			end
+			return properties.CanCollide
+		end)
+		local changed = part.Changed:Connect(function(property)
+			if debounce then return end
+			if properties[property] then
+				if properties[property] ~= part[property] then
+					properties[property] = part[property]
+				end
+				playerIdx:Update()
+			end
+		end)
+		part.Destroying:Connect(function()
+			getSizeHook:Remove()
+			getTransparencyHook:Remove()
+			getMasslessHook:Remove()
+			getCanCollideHook:Remove()
+			setSizeHook:Remove()
+			setTransparencyHook:Remove()
+			setMasslessHook:Remove()
+			setCanCollideHook:Remove()
+			changed:Disconnect()
+		end)
+	end
+
+	local isActive
+	isActive = function(part)
+		local name = part.Name
+		local activeValues = Options.extenderPartList:GetActiveValues()
+		for _, v in pairs(activeValues) do
+			if v == "Custom Part" then
+				if stringMatch(name, Options.customPartName.Value) then
+					return true
+				end
+			elseif limbPatterns[v] then
+				local patterns = limbPatterns[v]
+				local matchAll = true
+				for _, p in pairs(patterns) do
+					if not stringMatch(name, p) then
+						matchAll = false
+						break
+					end
+				end
+				if matchAll then return true end
+			else
+				if stringMatch(name, v) then
+					return true
+				end
+			end
+		end
+		return false
+	end
+
+	local resize
+	resize = function(part)
+		if not defaultProperties[part.Name] then
+			setup(part)
+		end
+		if Toggles.extenderToggled.Value and isActive(part) and not isIgnored() and not isSitting() and not isFFed() and not isDead() then
+			if part.Name ~= "HumanoidRootPart" then
+				part.Massless = true
+			end
+			if not Toggles.collisionsToggled.Value then
+				part.CanCollide = false
+			else
+				part.CanCollide = defaultProperties[part.Name].CanCollide
+			end
+			local size = Options.extenderSize.Value
+			part.Size = Vector3New(size, size, size)
+			part.Transparency = Options.extenderTransparency.Value
+			if part.Name == "Head" then
+				local face = part:FindFirstChild("face")
+				if face then
+					face.Transparency = Options.extenderTransparency.Value
+				end
+			end
+		else
+			part.Massless = defaultProperties[part.Name].Massless
+			part.CanCollide = defaultProperties[part.Name].CanCollide
+			part.Size = defaultProperties[part.Name].Size
+			part.Transparency = defaultProperties[part.Name].Transparency
+			if part.Name == "Head" then
+				local face = part:FindFirstChild("face")
+				if face then
+					face.Transparency = defaultProperties["Head"].Transparency
+				end
+			end
+		end
+	end
+
+	function playerIdx:Update()
+		if not playerChar then return end
+		debounce = true
+		if Toggles.antiBanRandomizeUpdates.Value then
+			taskWait(mathRandom(1, 5) / 100)
+		end
+		for _, v in pairs(playerChar:GetChildren()) do
+			if v:IsA("BasePart") then
+				resize(v)
+			end
+		end
+		debounce = false
+	end
+
+	local function FindFirstChildMatching(parent, name)
+		if not parent then return nil end
+		for _,v in pairs(parent:GetChildren()) do
+			if stringMatch(v.Name, name) then
+				return v
+			end
+		end
+	end
+
+	function playerIdx:UpdateESP()
+		if not playerChar or isIgnored() or isDead() then
+			if nameTag then nameTag.Enabled = false end
+			chams.Enabled = false
+			return
+		end
+		if Toggles.espNameToggled.Value and nameLabel then
+			local target = FindFirstChildMatching(playerChar, "Torso")
+			if target then
+				local pos, vis = WorldToViewportPoint(Camera, target.Position)
+				if vis then
+					if Options.espNameType.Value == "Display Name" then
+						nameLabel.Text = player.DisplayName
+					else
+						nameLabel.Text = player.Name
+					end
+					if Toggles.espNameUseTeamColor.Value then
+						nameLabel.TextColor3 = player.TeamColor.Color
+					else
+						nameLabel.TextColor3 = Options.espNameColor1.Value
+					end
+					nameLabel.TextStrokeColor3 = Options.espNameColor2.Value
+					nameTag.Enabled = true
+				else
+					nameTag.Enabled = false
+				end
+			else
+				nameTag.Enabled = false
+			end
+		else
+			if nameTag then nameTag.Enabled = false end
+		end
+		if Toggles.espHighlightToggled.Value then
+			chams.Adornee = playerChar
+			if Toggles.espHighlightUseTeamColor.Value then
+				chams.FillColor = player.TeamColor.Color
+				chams.OutlineColor = player.TeamColor.Color
+			else
+				chams.FillColor = Options.espHighlightColor1.Value
+				chams.OutlineColor = Options.espHighlightColor2.Value
+			end
+			chams.DepthMode = Enum.HighlightDepthMode[Options.espHighlightDepthMode.Value]
+			chams.FillTransparency = Options.espHighlightFillTransparency.Value
+			chams.OutlineTransparency = Options.espHighlightOutlineTransparency.Value
+			chams.Enabled = true
+		else
+			chams.Enabled = false
+		end
+	end
+
+	function playerIdx:DeleteVisuals()
+		pcall(function()
+			if nameTag then nameTag:Destroy() end
+			chams:Destroy()
+		end)
+	end
+
+	local function WaitForFullChar(char)
+		local startTime = tick()
+		local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+		if not humanoid then
+			repeat
+				if char == nil then
+					return false
+				end
+				humanoid = char:FindFirstChildWhichIsA("Humanoid")
+				taskWait()
+			until humanoid or tick() - startTime >= 2
+		end
+		local loaded = false
+		startTime = tick()
+		repeat
+			local limbs = 0
+			for _, v in pairs(char:GetChildren()) do
+				if humanoid:GetLimb(v) ~= Enum.Limb.Unknown then
+					limbs = limbs + 1
+				end
+			end
+			if limbs == 6 or limbs == 15 then
+				loaded = true
+			end
+			taskWait()
+		until loaded or tick() - startTime >= 3
+		return true
+	end
+
+	player.CharacterAdded:Connect(function(character)
+		playerChar = character
+		defaultProperties = {}
+		if WaitForFullChar(character) then
+			playerIdx:Update()
+			local humanoid = character:FindFirstChildWhichIsA("Humanoid")
+			if humanoid then
+				humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+					if humanoid.Health <= 0 then
+						playerIdx:Update()
+					end
+				end)
+				humanoid.StateChanged:Connect(function(_, newState)
+					if newState == Enum.HumanoidStateType.Dead then
+						playerIdx:Update()
+					end
+				end)
+			end
+			if character:FindFirstChildWhichIsA("ForceField") then
+				playerIdx:Update()
+			end
+			character.ChildAdded:Connect(function(child)
+				if game.GameId == 718936923 then
+					if child.Name == "Dead" then
+						playerIdx:Update()
+						return
+					end
+				end
+				if child:IsA("ForceField") then
+					playerIdx:Update()
+				end
+			end)
+			character.ChildRemoved:Connect(function(child)
+				if child:IsA("ForceField") then
+					playerIdx:Update()
+				end
+			end)
+			if game.PlaceId == 4991214437 or game.PlaceId == 6652350934 then
+				local head = playerChar:FindFirstChild("Head")
+				if head then
+					head:GetPropertyChangedSignal("Material"):Connect(function()
+						playerIdx:Update()
+					end)
+				end
+			end
+		end
+	end)
+	player.CharacterRemoving:Connect(function()
+		if playerIdx then
+			defaultProperties = {}
+		end
+	end)
+	player:GetPropertyChangedSignal("Team"):Connect(function()
+		playerIdx:Update()
+	end)
+	if game.PlaceId == 6172932937 then
+		local ragdolled = player:FindFirstChild("ragdolled")
+		if ragdolled then
+			ragdolled.Changed:Connect(function()
+				playerIdx:Update()
+			end)
+		end
+	end
+	if game.GameId == 1934496708 then
+		local ff = Workspace:FindFirstChild("FriendlyFire")
+		if ff then
+			ff.Changed:Connect(function()
+				playerIdx:Update()
+			end)
+		end
+	end
+	if game.GameId == 2162282815 then
+		local mapFolder = Workspace:FindFirstChild("MapFolder")
+		if mapFolder then
+			local gamePlayers = mapFolder:FindFirstChild("Players")
+			if gamePlayers then
+				for _,v in pairs(gamePlayers:GetChildren()) do
+					if v.Name == player.Name then
+						playerChar = v
+					end
+				end
+				gamePlayers.ChildAdded:Connect(function(v)
+					if v.Name == player.Name then
+						playerChar = v
+					end
+				end)
+			end
+		end
+	end
+	if game.PlaceId == 4991214437 or game.PlaceId == 6652350934 then
+		if playerChar then
+			local head = playerChar:FindFirstChild("Head")
+			if head then
+				head:GetPropertyChangedSignal("Material"):Connect(function()
+					playerIdx:Update()
+				end)
+			end
+		end
+	end
+end
+
+local function removePlayer(player)
+	if not players[player] then return end
+	players[player]:DeleteVisuals()
+	local idx = tableFind(Options.ignorePlayerList.Values, player.Name)
+	if idx then
+		tableRemove(Options.ignorePlayerList.Values, idx)
+	end
+	updateList(Options.ignorePlayerList)
+	players[player] = nil
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+	if player == lPlayer then
+		continue
+	end
+	addPlayer(player)
+end
+
+for _, team in pairs(Teams:GetTeams()) do
+	if team:IsA("Team") then
+		tableInsert(Options.ignoreTeamList.Values, team.Name)
+		updateList(Options.ignoreTeamList)
+	end
+end
+
+Players.PlayerAdded:Connect(function(player)
+	addPlayer(player)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	removePlayer(player)
+end)
+
+Teams.ChildAdded:Connect(function(team)
+	if team:IsA("Team") then
+		tableInsert(Options.ignoreTeamList.Values, team.Name)
+		updateList(Options.ignoreTeamList)
+	end
+end)
+
+Teams.ChildRemoved:Connect(function(team)
+	if team:IsA("Team") then
+		local idx = tableFind(Options.ignoreTeamList.Values, team.Name)
+		if idx then
+			tableRemove(Options.ignoreTeamList.Values, idx)
+		end
+		updateList(Options.ignoreTeamList)
+	end
+end)
+
+lPlayer:GetAttributeChangedSignal("Team"):Connect(function()
+	localUpdatePlayers()
+end)
+
+lPlayer.CharacterAdded:Connect(function()
+	localUpdatePlayers()
+end)
+
+emergencyGroupbox:AddButton("Fix Missing Players", function()
+	local found = 0
+	for _, player in ipairs(Players:GetPlayers()) do
+		if players[player] or player == lPlayer then continue else
+			found = found + 1
+			addPlayer(player)
+		end
+	end
+	if found > 0 then
+		Library:Notify("Found " .. found .. " players")
+	else
+		Library:Notify("No missing players found")
+	end
+	localUpdatePlayers()
+end):AddToolTip("Attempts to find players that were not detected by the hbe (somehow)")
+
+emergencyGroupbox:AddButton("Re-AntiBan (Destroy Remotes)", function()
+	blockSuspiciousRemotes()
+	Library:Notify("Anti-ban remotes destroyed")
+end):AddToolTip("Destroys suspicious remotes again")
+
+emergencyGroupbox:AddButton("Reset All Hooks", function()
+	for _, player in pairs(players) do
+		if player then
+			player:Update()
+		end
+	end
+	Library:Notify("All players updated")
+end):AddToolTip("Forcefully updates all players")
+
+if game.PlaceId == 111311599 then
+	local anticheat = game:GetService("ReplicatedFirst"):FindFirstChild("Serverbased AntiCheat")
+	if anticheat then
+		anticheat.Disabled = true
+	end
+	local sValue = lPlayer:FindFirstChild("SValue")
+	if sValue then
+		taskSpawn(function()
+			while getgenv().FurryHBELoaded ~= nil do
+				taskWait(mathRandom(15, 30) / 10)
+				pcall(function()
+					game:GetService("ReplicatedStorage").ACDetect:FireServer(
+						sValue.Value,
+						"CS-" .. mathRandom(11111, 99999) .. "-" .. mathRandom(1111, 9999) .. "-" .. mathRandom(111111, 999999) .. mathRandom(1111111, 9999999) .. (sValue.Value * 6) ^ 2 + 18
+					)
+				end)
+			end
+		end)
+	end
+end
+
+local function onUnload()
+	getgenv().FurryHBELoaded = false
+	for _, player in pairs(players) do
+		pcall(function()
+			player:DeleteVisuals()
+		end)
+	end
+	if getgenv()._furryContainer then
+		pcall(function()
+			getgenv()._furryContainer:Destroy()
+		end)
+		getgenv()._furryContainer = nil
+	end
+end
+
+getgenv().FurryHBELoaded = true
+localUpdatePlayers()
+Library:Notify("hai :3")
+Library:Notify("Press " .. Library.ToggleKeybind.Value .. " to open the menu")
