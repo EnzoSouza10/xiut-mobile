@@ -47,13 +47,6 @@ local newcclosure = newcclosure
 local checkcaller = checkcaller
 local typeof = typeof
 local getnamecallmethod = getnamecallmethod
-local rawget = rawget
-local rawset = rawset
-local next = next
-local type = type
-local pairs = pairs
-local pcall = pcall
-local table = table
 
 -- [[ Anti-Detect Layer 3: Safe setreadonly ]]
 -- Use a safe wrapper that falls back gracefully
@@ -76,44 +69,6 @@ local oldNamecall = mt.__namecall
 -- Apply setreadonly in a pcall to avoid crashes on unsupported executors
 pcall(setreadonly, mt, false)
 
--- [[ Anti-Detect Layer 2 (continued): Install Network Hook ]]
--- Now that setreadonly and getnamecallmethod are localized, install the network hook
-local function installNetworkHook()
-	if _networkHooked then return end
-	_networkHooked = true
-	local mt2 = mt -- same metatable
-	pcall(setreadonly, mt2, false)
-	local _oldNc2_net = mt2.__namecall
-	mt2.__namecall = newcclosure(function(self, ...)
-		local method = getnamecallmethod()
-		-- Intercept network calls that may carry hitbox data to the server
-		if (method == "FireServer" or method == "InvokeServer" or method == "FireAllClients") and
-			typeof(self) == "Instance" and
-			(self:IsA("RemoteEvent") or self:IsA("RemoteFunction") or self:IsA("UnreliableRemoteEvent")) then
-			if not _inNetworkCall then
-				_inNetworkCall = true
-				-- Restore real sizes so the server sees legit hitboxes
-				for part, realSize in pairs(_activeHooks) do
-					pcall(rawset, part, "Size", realSize)
-				end
-				local result = {_oldNc2_net(self, ...)}
-				-- Re-apply spoofed sizes immediately after
-				if getgenv().FurryHBELoaded and Toggles and Toggles.extenderToggled and Toggles.extenderToggled.Value then
-					local sz = Options and Options.extenderSize and Options.extenderSize.Value or 10
-					for part, _ in pairs(_activeHooks) do
-						pcall(rawset, part, "Size", Vector3.new(sz, sz, sz))
-					end
-				end
-				_inNetworkCall = false
-				return table.unpack(result)
-			end
-		end
-		return _oldNc2_net(self, ...)
-	end)
-	-- Note: mt is restored to readonly below in the MTAPI section
-end
-
-pcall(installNetworkHook)
 
 
 mt.__index = newcclosure(function(self, key)
@@ -203,24 +158,46 @@ end)
 
 mt.__namecall = newcclosure(function(self, ...)
 	local method = getnamecallmethod()
-	-- Skip intercept during network calls
-	if not _inNetworkCall then
-		if not checkcaller() and typeof(self) == "Instance" and a[self] then
-			if method == "GetPropertyChangedSignal" or method == "getPropertyChangedSignal" then
-				local args = {...}
-				local prop = args[1]
-				if a[self][prop] then
-					return Instance.new("BindableEvent").Event
+	-- [[ Network Anti-Detect: restore real sizes during FireServer/InvokeServer ]]
+	-- This prevents the server from seeing expanded hitboxes during weapon validation
+	if not checkcaller() and
+		(method == "FireServer" or method == "InvokeServer" or method == "FireAllClients") and
+		typeof(self) == "Instance" and
+		(self:IsA("RemoteEvent") or self:IsA("RemoteFunction") or self:IsA("UnreliableRemoteEvent")) then
+		if not _inNetworkCall then
+			_inNetworkCall = true
+			-- Temporarily restore real part sizes
+			for part, realSize in pairs(_activeHooks) do
+				pcall(rawset, part, "Size", realSize)
+			end
+			local result = {oldNamecall(self, ...)}
+			-- Re-apply spoofed sizes immediately after
+			if getgenv().FurryHBELoaded and Toggles and Toggles.extenderToggled and Toggles.extenderToggled.Value then
+				local sz = Options and Options.extenderSize and Options.extenderSize.Value or 10
+				for part, _ in pairs(_activeHooks) do
+					pcall(rawset, part, "Size", Vector3.new(sz, sz, sz))
 				end
 			end
+			_inNetworkCall = false
+			return table.unpack(result)
 		end
-		if not checkcaller() and typeof(self) == "Instance" and d[self] and d[self][method] then
-			local hook = d[self][method]
-			if hook.IsCallback then
-				return hook.Value(self, ...)
-			else
-				return hook.Value
+	end
+	-- [[ MTAPI: intercept GetPropertyChangedSignal and custom namecall hooks ]]
+	if not checkcaller() and not _inNetworkCall and typeof(self) == "Instance" and a[self] then
+		if method == "GetPropertyChangedSignal" or method == "getPropertyChangedSignal" then
+			local args = {...}
+			local prop = args[1]
+			if a[self][prop] then
+				return Instance.new("BindableEvent").Event
 			end
+		end
+	end
+	if not checkcaller() and not _inNetworkCall and typeof(self) == "Instance" and d[self] and d[self][method] then
+		local hook = d[self][method]
+		if hook.IsCallback then
+			return hook.Value(self, ...)
+		else
+			return hook.Value
 		end
 	end
 	return oldNamecall(self, ...)
