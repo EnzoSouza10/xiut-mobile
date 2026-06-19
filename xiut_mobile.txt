@@ -1,0 +1,396 @@
+﻿-- SERVICES
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- COLORS
+local COLORS = {
+    Red    = Color3.fromRGB(127, 0, 0),
+    White  = Color3.fromRGB(255, 255, 255),
+    Black  = Color3.fromRGB(0, 0, 0),
+    Dark   = Color3.fromRGB(10, 10, 10),
+}
+
+-- AIMBOT STATE
+local Aimbot = {
+    Enabled      = false,  -- sistema ligado (botao toggle)
+    LockedTarget = nil,    -- jogador travado
+
+    FOV        = 300,   -- raio em pixels para detectar inimigo no toque
+    Smoothness = 0.15,  -- fator Lerp (0.01 = super suave, 1 = instantaneo)
+    Prediction = 0,     -- multiplicador de previsao de movimento
+}
+
+-- STATUS LABEL (exibido no toggle)
+-- "AIMBOT OFF"      -> sistema desligado
+-- "AGUARDANDO..."   -> ligado, esperando toque para travar alvo
+-- "TRAVADO: [nome]" -> travado em um inimigo
+
+-- ==================== GUI ====================
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name        = "AimbotUI"
+ScreenGui.Parent      = game.CoreGui
+ScreenGui.ResetOnSpawn = false
+
+local Main = Instance.new("Frame")
+Main.Parent           = ScreenGui
+Main.Size             = UDim2.new(0, 320, 0, 350)
+Main.Position         = UDim2.new(0.5, -160, 0.5, -175)
+Main.BackgroundColor3 = COLORS.Black
+Main.BorderSizePixel  = 0
+Main.Active           = true
+Main.Draggable        = true  -- arrasto por toque funciona no mobile
+
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Parent    = Main
+MainStroke.Color     = COLORS.Red
+MainStroke.Thickness = 1.5
+
+-- Shadow
+local Shadow = Instance.new("ImageLabel")
+Shadow.Parent              = Main
+Shadow.BackgroundTransparency = 1
+Shadow.Size                = UDim2.new(1, 40, 1, 40)
+Shadow.Position            = UDim2.new(0, -20, 0, -20)
+Shadow.Image               = "rbxassetid://1316045217"
+Shadow.ImageTransparency   = 0.6
+Shadow.ScaleType           = Enum.ScaleType.Slice
+Shadow.SliceCenter         = Rect.new(10, 10, 118, 118)
+Shadow.ZIndex              = 0
+
+-- Topbar
+local Top = Instance.new("Frame")
+Top.Parent           = Main
+Top.Size             = UDim2.new(1, 0, 0, 42)
+Top.BackgroundColor3 = COLORS.Red
+Top.BorderSizePixel  = 0
+
+Instance.new("UICorner", Top).CornerRadius = UDim.new(0, 12)
+
+local Fix = Instance.new("Frame")
+Fix.Parent           = Top
+Fix.Size             = UDim2.new(1, 0, 0, 12)
+Fix.Position         = UDim2.new(0, 0, 1, -12)
+Fix.BackgroundColor3 = COLORS.Red
+Fix.BorderSizePixel  = 0
+
+local Title = Instance.new("TextLabel")
+Title.Parent              = Top
+Title.Size                = UDim2.new(1, 0, 1, 0)
+Title.BackgroundTransparency = 1
+Title.Text                = "AIMBOT MOBILE"
+Title.Font                = Enum.Font.GothamBold
+Title.TextSize            = 17
+Title.TextColor3          = COLORS.White
+
+-- Top button factory
+local function CreateTopButton(text, pos)
+    local Btn = Instance.new("TextButton")
+    Btn.Parent           = Top
+    Btn.Size             = UDim2.new(0, 36, 0, 36)  -- maior para toque facil
+    Btn.Position         = pos
+    Btn.BackgroundColor3 = COLORS.Black
+    Btn.Text             = text
+    Btn.Font             = Enum.Font.GothamBold
+    Btn.TextSize         = 14
+    Btn.TextColor3       = COLORS.White
+    Btn.BorderSizePixel  = 0
+    Btn.AutoButtonColor  = false
+
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(1, 0)
+
+    local Stk = Instance.new("UIStroke")
+    Stk.Parent      = Btn
+    Stk.Color       = COLORS.White
+    Stk.Transparency = 0.7
+
+    Btn.MouseButton1Down:Connect(function()
+        TweenService:Create(Btn, TweenInfo.new(0.08), {Size = UDim2.new(0, 30, 0, 30)}):Play()
+    end)
+    Btn.MouseButton1Up:Connect(function()
+        TweenService:Create(Btn, TweenInfo.new(0.08), {Size = UDim2.new(0, 36, 0, 36)}):Play()
+    end)
+
+    return Btn
+end
+
+local CloseBtn    = CreateTopButton("X", UDim2.new(1, -44, 0.5, -18))
+local MinimizeBtn = CreateTopButton("-", UDim2.new(1, -86, 0.5, -18))
+
+-- Container
+local Container = Instance.new("Frame")
+Container.Parent              = Main
+Container.Size                = UDim2.new(1, -20, 1, -55)
+Container.Position            = UDim2.new(0, 10, 0, 50)
+Container.BackgroundTransparency = 1
+
+local Layout = Instance.new("UIListLayout")
+Layout.Parent  = Container
+Layout.Padding = UDim.new(0, 10)
+
+-- Box factory
+local function CreateBox(label, default)
+    local Holder = Instance.new("Frame")
+    Holder.Parent              = Container
+    Holder.Size                = UDim2.new(1, 0, 0, 55)
+    Holder.BackgroundTransparency = 1
+
+    local Lbl = Instance.new("TextLabel")
+    Lbl.Parent              = Holder
+    Lbl.Size                = UDim2.new(1, 0, 0, 18)
+    Lbl.BackgroundTransparency = 1
+    Lbl.Text                = label
+    Lbl.Font                = Enum.Font.GothamBold
+    Lbl.TextSize            = 13
+    Lbl.TextColor3          = COLORS.White
+    Lbl.TextXAlignment      = Enum.TextXAlignment.Left
+
+    local Box = Instance.new("TextBox")
+    Box.Parent           = Holder
+    Box.Size             = UDim2.new(1, 0, 0, 32)
+    Box.Position         = UDim2.new(0, 0, 0, 22)
+    Box.BackgroundColor3 = COLORS.Dark
+    Box.BorderSizePixel  = 0
+    Box.Text             = tostring(default)
+    Box.Font             = Enum.Font.Gotham
+    Box.TextSize         = 14
+    Box.TextColor3       = COLORS.White
+
+    Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 7)
+
+    local Stk = Instance.new("UIStroke")
+    Stk.Parent = Box
+    Stk.Color  = COLORS.Red
+
+    return Box
+end
+
+local FOVBox        = CreateBox("FOV (raio de deteccao)", Aimbot.FOV)
+local SmoothBox     = CreateBox("Smoothness 0.01 - 1",    Aimbot.Smoothness)
+local PredictionBox = CreateBox("Prediction",              Aimbot.Prediction)
+
+-- Main button factory
+local function CreateMainButton(text)
+    local Btn = Instance.new("TextButton")
+    Btn.Parent           = Container
+    Btn.Size             = UDim2.new(1, 0, 0, 50)  -- alto para toque facil
+    Btn.BackgroundColor3 = COLORS.Black
+    Btn.BorderSizePixel  = 0
+    Btn.Text             = text
+    Btn.Font             = Enum.Font.GothamBold
+    Btn.TextSize         = 14
+    Btn.TextColor3       = COLORS.White
+    Btn.AutoButtonColor  = false
+
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
+
+    local Stk = Instance.new("UIStroke")
+    Stk.Parent = Btn
+    Stk.Color  = COLORS.Red
+
+    Btn.MouseButton1Down:Connect(function()
+        TweenService:Create(Btn, TweenInfo.new(0.08),
+            {Size = UDim2.new(0.97, 0, 0, 46)}):Play()
+    end)
+    Btn.MouseButton1Up:Connect(function()
+        TweenService:Create(Btn, TweenInfo.new(0.08),
+            {Size = UDim2.new(1, 0, 0, 50)}):Play()
+    end)
+
+    return Btn
+end
+
+local Toggle = CreateMainButton("AIMBOT OFF")
+
+-- ==================== LOGIC ====================
+
+-- Atualiza visual do botao toggle
+local function UpdateToggle()
+    if Aimbot.Enabled then
+        if Aimbot.LockedTarget then
+            Toggle.Text = "TRAVADO: " .. Aimbot.LockedTarget.Name
+        else
+            Toggle.Text = "AGUARDANDO TOQUE..."
+        end
+
+        TweenService:Create(Toggle, TweenInfo.new(0.2),
+            {BackgroundColor3 = COLORS.Red}):Play()
+    else
+        Toggle.Text = "AIMBOT OFF"
+        TweenService:Create(Toggle, TweenInfo.new(0.2),
+            {BackgroundColor3 = COLORS.Black}):Play()
+    end
+end
+
+-- Desativa completamente (chamado ao matar inimigo ou desligar manualmente)
+local function DeactivateAimbot()
+    Aimbot.Enabled      = false
+    Aimbot.LockedTarget = nil
+    UpdateToggle()
+end
+
+-- Busca inimigo mais proximo de uma posicao de tela (igual ao PC com cursor)
+-- touchPos: Vector2 com coordenadas de tela do toque
+local function GetTargetNearTouchPos(touchPos)
+    local closest  = nil
+    local minDist  = Aimbot.FOV
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local head = player.Character:FindFirstChild("Head")
+            local hum  = player.Character:FindFirstChild("Humanoid")
+
+            if head and hum and hum.Health > 0 then
+                local predicted = head.Position
+                    + head.AssemblyLinearVelocity * Aimbot.Prediction
+
+                local screenPos, onScreen =
+                    Camera:WorldToViewportPoint(predicted)
+
+                if onScreen then
+                    local dist =
+                        (Vector2.new(screenPos.X, screenPos.Y) - touchPos).Magnitude
+
+                    if dist < minDist then
+                        minDist = dist
+                        closest = player
+                    end
+                end
+            end
+        end
+    end
+
+    return closest
+end
+
+-- Toque na tela (fora da GUI): trava no inimigo mais proximo do ponto tocado
+-- Usa TouchTapInWorld para ignorar toques que acertaram elementos de UI
+UserInputService.TouchTapInWorld:Connect(function(touchPos, processedByUI)
+    -- Se o sistema nao esta ligado, ignora
+    if not Aimbot.Enabled then return end
+
+    -- Se o toque foi consumido pela GUI, ignora
+    if processedByUI then return end
+
+    -- Ja tem alvo travado: nao substitui (precisa morrer para trocar)
+    if Aimbot.LockedTarget then return end
+
+    -- Busca inimigo proximo ao ponto tocado
+    local target = GetTargetNearTouchPos(touchPos)
+
+    if target then
+        Aimbot.LockedTarget = target
+        UpdateToggle()
+    end
+    -- Se nao achou ninguem no FOV, aguarda proximo toque
+end)
+
+-- Botao toggle: liga/desliga o sistema
+Toggle.MouseButton1Click:Connect(function()
+    if Aimbot.Enabled then
+        -- Desliga manualmente
+        DeactivateAimbot()
+    else
+        -- Liga: aguarda toque para travar alvo
+        Aimbot.Enabled      = true
+        Aimbot.LockedTarget = nil
+        UpdateToggle()
+    end
+end)
+
+-- ==================== SETTINGS ====================
+
+FOVBox.FocusLost:Connect(function()
+    local n = tonumber(FOVBox.Text)
+    if n then Aimbot.FOV = n end
+end)
+
+SmoothBox.FocusLost:Connect(function()
+    local n = tonumber(SmoothBox.Text)
+    if n then
+        Aimbot.Smoothness = math.clamp(n, 0.01, 1)
+        SmoothBox.Text = tostring(Aimbot.Smoothness)
+    end
+end)
+
+PredictionBox.FocusLost:Connect(function()
+    local n = tonumber(PredictionBox.Text)
+    if n then Aimbot.Prediction = n end
+end)
+
+-- ==================== MINIMIZE / CLOSE ====================
+
+local Minimized = false
+
+MinimizeBtn.MouseButton1Click:Connect(function()
+    Minimized = not Minimized
+
+    if Minimized then
+        TweenService:Create(Main,
+            TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+            {Size = UDim2.new(0, 320, 0, 42)}
+        ):Play()
+        task.wait(0.05)
+        Container.Visible = false
+    else
+        Container.Visible = true
+        TweenService:Create(Main,
+            TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+            {Size = UDim2.new(0, 320, 0, 350)}
+        ):Play()
+    end
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    TweenService:Create(Main,
+        TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+        {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}
+    ):Play()
+    task.wait(0.2)
+    ScreenGui:Destroy()
+end)
+
+-- ==================== AIMBOT LOOP ====================
+
+RunService.RenderStepped:Connect(function()
+
+    -- So executa se sistema ligado E com alvo travado
+    if not (Aimbot.Enabled and Aimbot.LockedTarget) then return end
+
+    local char = Aimbot.LockedTarget.Character
+
+    -- Verifica se alvo ainda esta vivo
+    if char
+    and char:FindFirstChild("Head")
+    and char:FindFirstChild("Humanoid")
+    and char.Humanoid.Health > 0 then
+
+        local head = char.Head
+
+        local predicted =
+            head.Position + head.AssemblyLinearVelocity * Aimbot.Prediction
+
+        local _, onScreen = Camera:WorldToViewportPoint(predicted)
+
+        if onScreen then
+            -- Move a camera suavemente em direcao a cabeca do alvo
+            -- Mesma logica de hitbox do PC, so muda o metodo de mover a camera
+            Camera.CFrame = Camera.CFrame:Lerp(
+                CFrame.new(Camera.CFrame.Position, predicted),
+                Aimbot.Smoothness
+            )
+        end
+
+    else
+        -- INIMIGO MORREU OU SAIU: desativa automaticamente
+        -- Precisa reativar manualmente (pressionar AIMBOT OFF -> ON)
+        DeactivateAimbot()
+    end
+end)
