@@ -168,7 +168,7 @@ local function sl(t,mn,mx,df,cb)
 	local dr = false
 	local function up(inp)
 		local w = tr.AbsoluteSize.X; if w <= 0 then return end
-		local r = math.clamp((inp.Position.X-tr.AbsolutePosition.X)/w,0,1)
+			local r = math.max(0, math.min(1, (inp.Position.X-tr.AbsolutePosition.X)/w))
 		fl.Size = UDim2.fromScale(r,1); th.Position = UDim2.new(r,-6,0.5,-6)
 		local v = mn+(mx-mn)*r; vl.Text = tostring(math.floor(v*100)/100); cb(v)
 	end
@@ -246,7 +246,7 @@ local function ad()
 			rs(p.Character)
 		end
 	end
-	spawn(function() wf(cfg.adD) adActive = false end)
+	task.spawn(function() wf(cfg.adD) adActive = false end)
 end
 
 local function ap(p)
