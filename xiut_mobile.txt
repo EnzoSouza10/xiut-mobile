@@ -1,18 +1,73 @@
-if getgenv().FurryHBELoaded ~= nil then
+local env = getgenv and getgenv() or _G
+if env.FurryHBELoaded ~= nil then return end
+env.FurryHBELoaded = false
+
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+local function httpGet(url)
+	local success, result = pcall(function()
+		return game:HttpGet(url, true)
+	end)
+	if success then return result end
+	success, result = pcall(function()
+		return game:HttpGetAsync(url)
+	end)
+	if success then return result end
+	return nil
+end
+
+if not env.MTAPIMutex then
+	local code = httpGet("https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua")
+	if code then
+		pcall(function() loadstring(code)() end)
+	end
+end
+
+local Library
+local SaveManager
+
+local libCode = httpGet("https://raw.githubusercontent.com/RectangularObject/LinoriaLib/main/Library.lua")
+if libCode then
+	pcall(function() Library = loadstring(libCode)() end)
+end
+
+local saveCode = httpGet("https://raw.githubusercontent.com/RectangularObject/LinoriaLib/main/addons/SaveManager.lua")
+if saveCode then
+	pcall(function() SaveManager = loadstring(saveCode)() end)
+end
+
+if not Library then
+	local plr = game:GetService("Players").LocalPlayer
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "LinoriaFallback"
+	gui.ResetOnSpawn = false
+	gui.Parent = (function()
+		local c = game:GetService("CoreGui")
+		if c and not game:GetService("RunService"):IsStudio() then return c end
+		return plr:WaitForChild("PlayerGui")
+	end)()
+	local f = Instance.new("Frame")
+	f.Size = UDim2.new(0, 400, 0, 300)
+	f.Position = UDim2.new(0.5, -200, 0.5, -150)
+	f.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+	f.Parent = gui
+	local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 8); c.Parent = f
+	local t = Instance.new("TextLabel")
+	t.Size = UDim2.new(1, 0, 0, 30); t.BackgroundTransparency = 1
+	t.Text = "ERRO: Linoria Library nao carregou"; t.TextColor3 = Color3.fromRGB(255, 100, 100)
+	t.Font = Enum.Font.GothamBold; t.TextSize = 14; t.Parent = f
+	local st = Instance.new("TextLabel")
+	st.Size = UDim2.new(1, -20, 0, 60); st.Position = UDim2.new(0, 10, 0, 40)
+	st.BackgroundTransparency = 1; st.TextWrapped = true
+	st.Text = "Verifique se seu executor permite HTTP requests\ne tem suporte a Luau (continue, etc)"
+	st.TextColor3 = Color3.fromRGB(180, 180, 180); st.Font = Enum.Font.GothamMedium; st.TextSize = 12; st.Parent = f
 	return
 end
-getgenv().FurryHBELoaded = false
 
-if not game:IsLoaded() then
-	game.Loaded:Wait()
+if SaveManager then
+	SaveManager:SetLibrary(Library)
+	SaveManager:SetFolder("FurryHBE")
 end
-
-if not getgenv().MTAPIMutex then
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua", true))()
-end
---[[ loadstring(game:HttpGet("https://raw.githubusercontent.com/LegoHacker1337/legohacks/main/PhysicsServiceOnClient.lua"))() ]]
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/RectangularObject/LinoriaLib/main/Library.lua"))()
-local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/RectangularObject/LinoriaLib/main/addons/SaveManager.lua"))()
 SaveManager:SetLibrary(Library)
 SaveManager:SetFolder("FurryHBE")
 
@@ -596,11 +651,9 @@ local function removePlayer(player)
 end
 
 for _, player in ipairs(Players:GetPlayers()) do
-	if player == lPlayer then
-		continue
+	if player ~= lPlayer then
+		addPlayer(player)
 	end
-	--print("found player", player.Name)
-	addPlayer(player)
 end
 for _, team in pairs(Teams:GetTeams()) do
 	if team:IsA("Team") then
@@ -643,7 +696,7 @@ end)
 emergencyGroupbox:AddButton("Fix Missing Players", function()
 	local found = 0
 	for _, player in ipairs(Players:GetPlayers()) do
-		if players[player] or player == lPlayer then continue else
+		if not players[player] and player ~= lPlayer then
 			found = found + 1
 			addPlayer(player)
 		end
