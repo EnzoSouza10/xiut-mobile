@@ -6,6 +6,8 @@
 ╚═══════════════════════════════════════════╝
 ]]
 
+local ok, err = pcall(function()
+
 if not table.find then
 	table.find = function(t, value)
 		for i = 1, #t do
@@ -17,24 +19,24 @@ if not table.find then
 	end
 end
 
-local GENV = (getgenv or function() return _G end)()
-
-if GENV.XitLoaded ~= nil then
+if _G.XitLoaded ~= nil then
 	return
 end
-GENV.XitLoaded = false
+_G.XitLoaded = false
 
 if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
 
 local mtApiLoaded = false
-if not GENV.MTAPIMutex then
-	local code = game:HttpGet("https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua", true)
-	local fn = loadstring(code)
-	if fn then
-		pcall(fn)
-		mtApiLoaded = true
+if not _G.MTAPIMutex then
+	local ok2, code = pcall(game.HttpGet, game, "https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua", true)
+	if ok2 and code then
+		local fn = loadstring(code)
+		if fn then
+			pcall(fn)
+			mtApiLoaded = true
+		end
 	end
 end
 
@@ -59,7 +61,7 @@ local hasDrawing = pcall(function() local d = Drawing.new("Text"); d:Remove() en
 local hasHighlight = pcall(function() local h = Instance.new("Highlight"); h:Destroy() end)
 
 local function updatePlayers()
-	if not GENV.XitLoaded then return end
+	if not _G.XitLoaded then return end
 	for _, v in pairs(players) do
 		task.spawn(function()
 			v:Update()
@@ -68,7 +70,7 @@ local function updatePlayers()
 end
 
 RunService:BindToRenderStep("xitRender", Enum.RenderPriority.Camera.Value - 1, function()
-	if not GENV.XitLoaded then return end
+	if not _G.XitLoaded then return end
 	Camera = Workspace.CurrentCamera
 	for _, v in pairs(players) do
 		task.spawn(function()
@@ -279,8 +281,6 @@ local function addPlayer(player)
 		Toggles.ignoreSelectedPlayersToggled.Value and table.find(Options.ignorePlayerList:GetActiveValues(), tostring(player.Name))
 	end
 
-	-- hbe
-
 	local debounce = false
 	local function setup(part)
 		defaultProperties[part.Name] = {}
@@ -299,8 +299,7 @@ local function addPlayer(player)
 				properties.Size = value
 				getSizeHook:Modify("Size", properties.Size)
 				if Toggles.extenderToggled.Value then
-					local size = Options.extenderSize.Value
-					return Vector3.new(size, size, size)
+					return Vector3.new(Options.extenderSize.Value, Options.extenderSize.Value, Options.extenderSize.Value)
 				end
 				return properties.Size
 			end)
@@ -315,10 +314,8 @@ local function addPlayer(player)
 			local setMasslessHook = part:AddSetHook("Massless", function(_, value)
 				properties.Massless = value
 				getMasslessHook:Modify("Massless", properties.Massless)
-				if Toggles.extenderToggled.Value then
-					if part.Name ~= "HumanoidRootPart" then
-						return true
-					end
+				if Toggles.extenderToggled.Value and part.Name ~= "HumanoidRootPart" then
+					return true
 				end
 				return properties.Massless
 			end)
@@ -426,8 +423,6 @@ local function addPlayer(player)
 		end
 	end
 
-	-- esp
-
 	local function FindFirstChildMatching(parent, name)
 		if not parent then return nil end
 		for _,v in pairs(parent:GetChildren()) do
@@ -507,12 +502,8 @@ local function addPlayer(player)
 	end
 
 	function playerIdx:DeleteVisuals()
-		if nameEsp then
-			nameEsp:Remove()
-		end
-		if chams then
-			chams:Destroy()
-		end
+		if nameEsp then nameEsp:Remove() end
+		if chams then chams:Destroy() end
 	end
 
 	local function WaitForFullChar(char)
@@ -520,9 +511,7 @@ local function addPlayer(player)
 		local humanoid = char:FindFirstChildWhichIsA("Humanoid")
 		if not humanoid then
 			repeat
-				if char == nil then
-					return false
-				end
+				if char == nil then return false end
 				humanoid = char:FindFirstChildWhichIsA("Humanoid")
 				task.wait()
 			until humanoid or tick()-startTime >= 2
@@ -566,11 +555,9 @@ local function addPlayer(player)
 				playerIdx:Update()
 			end
 			character.ChildAdded:Connect(function(child)
-				if game.GameId == 718936923 then
-					if child.Name == "Dead" then
-						playerIdx:Update()
-						return
-					end
+				if game.GameId == 718936923 and child.Name == "Dead" then
+					playerIdx:Update()
+					return
 				end
 				if child:IsA("ForceField") then
 					playerIdx:Update()
@@ -590,11 +577,9 @@ local function addPlayer(player)
 		end
 	end)
 	player.CharacterRemoving:Connect(function()
-		if playerIdx then
-			defaultProperties = {}
-		end
+		if playerIdx then defaultProperties = {} end
 	end)
-	player:GetPropertyChangedSignal("Team"):Connect(function(team)
+	player:GetPropertyChangedSignal("Team"):Connect(function()
 		playerIdx:Update()
 	end)
 	if game.PlaceId == 6172932937 then
@@ -633,7 +618,6 @@ local function addPlayer(player)
 	end
 end
 
--- anti detect
 local function resetHitboxes()
 	adActive = true
 	for player, idx in pairs(players) do
@@ -656,10 +640,10 @@ UserInputService.InputBegan:Connect(function(i, gpe)
 end)
 
 local function panic()
-	GENV.XitLoaded = false
+	_G.XitLoaded = false
 	mainWindow:SetVisible(false)
 	task.wait(60)
-	GENV.XitLoaded = true
+	_G.XitLoaded = true
 	mainWindow:SetVisible(true)
 end
 Options.panicKeybind:OnClick(panic)
@@ -756,7 +740,44 @@ if not mtApiLoaded then
 	Library:Notify("MT-Api hooks not available (using fallback mode)")
 end
 
-GENV.XitLoaded = true
+_G.XitLoaded = true
 updatePlayers()
 Library:Notify("XIT v6 | Creditos: iluminadomina")
 Library:Notify("Press " .. Library.ToggleKeybind.Value .. " to open the menu")
+
+end) -- fim do pcall
+
+if not ok then
+	local msg = tostring(err)
+	warn("XIT Error:", msg)
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "XitError"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = game:GetService("CoreGui")
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 400, 0, 200)
+	frame.Position = UDim2.new(0.5, -200, 0.5, -100)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	frame.BorderSizePixel = 0
+	frame.Parent = screenGui
+	local text = Instance.new("TextLabel")
+	text.Size = UDim2.new(1, -20, 1, -20)
+	text.Position = UDim2.new(0, 10, 0, 10)
+	text.BackgroundTransparency = 1
+	text.TextColor3 = Color3.fromRGB(255, 100, 100)
+	text.TextScaled = true
+	text.TextWrapped = true
+	text.Text = "XIT Error:\n" .. msg
+	text.Font = Enum.Font.Code
+	text.Parent = frame
+	local close = Instance.new("TextButton")
+	close.Size = UDim2.new(0, 80, 0, 30)
+	close.Position = UDim2.new(0.5, -40, 1, -40)
+	close.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	close.TextColor3 = Color3.fromRGB(255, 255, 255)
+	close.Text = "OK"
+	close.Parent = frame
+	close.MouseButton1Click:Connect(function()
+		screenGui:Destroy()
+	end)
+end
