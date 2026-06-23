@@ -1,79 +1,100 @@
 -- Services
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Teams = game:GetService("Teams")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local localPlayer = Players.LocalPlayer
 
--- UI Container Setup (Supports CoreGui for exploit execution, falls back to PlayerGui)
+-- Load MT-Api if not already loaded
+local mtApiLoaded = false
+pcall(function()
+	if getgenv().MTAPIMutex then
+		mtApiLoaded = true
+	end
+end)
+if not mtApiLoaded then
+	local success = pcall(function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua", true))()
+	end)
+	if not success then
+		warn("Failed to load MT-Api")
+	end
+end
+
+-- UI Container
 local parentGui = nil
 pcall(function()
-    if CoreGui and not RunService:IsStudio() then
-        parentGui = CoreGui
-    end
+	if CoreGui and not RunService:IsStudio() then
+		parentGui = CoreGui
+	end
 end)
 if not parentGui then
-    parentGui = localPlayer:WaitForChild("PlayerGui")
+	parentGui = localPlayer:WaitForChild("PlayerGui")
 end
 
--- Cleanup existing UI if it exists
-local oldGui = parentGui:FindFirstChild("XiutMobileGui")
+-- Cleanup existing UI
+local oldGui = parentGui:FindFirstChild("XiutPremiumUi")
 if oldGui then
-    oldGui:Destroy()
+	oldGui:Destroy()
 end
 
--- Variables / Settings State
-local settings = {
-    hitboxSize = 2,
-    hitboxEnabled = false,
-    espEnabled = false,
-    espNamesEnabled = false,
-    ignoreTeam = true,
-    transparency = 0.6
-}
-
--- ScreenGui Setup
+-- ScreenGui
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "XiutMobileGui"
+screenGui.Name = "XiutPremiumUi"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = parentGui
 
--- Main UI Frame
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.fromOffset(320, 360)
-mainFrame.Position = UDim2.new(0.5, -160, 0.5, -180)
-mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 20)
-mainFrame.BorderSizePixel = 0
-mainFrame.ClipsDescendants = true
-mainFrame.Parent = screenGui
+-- Theme
+local theme = {
+	Background = Color3.fromRGB(15, 15, 18),
+	TopBar = Color3.fromRGB(20, 20, 25),
+	AccentGlow = Color3.fromRGB(0, 180, 255),
+	AccentGreen = Color3.fromRGB(0, 255, 150),
+	CardBg = Color3.fromRGB(24, 24, 30),
+	TextActive = Color3.fromRGB(255, 255, 255),
+	TextMuted = Color3.fromRGB(150, 150, 160),
+	Border = Color3.fromRGB(40, 40, 50),
+}
 
--- UI Styling Utilities
+-- UI Utilities
 local function addCorner(parent, radius)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius)
-    corner.Parent = parent
-    return corner
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, radius)
+	corner.Parent = parent
+	return corner
 end
 
 local function addStroke(parent, color, thickness)
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = color or Color3.fromRGB(45, 45, 50)
-    stroke.Thickness = thickness or 1.2
-    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    stroke.Parent = parent
-    return stroke
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = color or theme.Border
+	stroke.Thickness = thickness or 1.2
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = parent
+	return stroke
 end
 
+-- Main Window
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainWindow"
+mainFrame.Size = UDim2.fromOffset(360, 380)
+mainFrame.Position = UDim2.new(0.5, -180, 0.5, -190)
+mainFrame.BackgroundColor3 = theme.Background
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
+mainFrame.Parent = screenGui
 addCorner(mainFrame, 12)
-addStroke(mainFrame, Color3.fromRGB(50, 50, 60))
+addStroke(mainFrame, theme.Border, 1.5)
 
 -- Top Bar
 local topBar = Instance.new("Frame")
 topBar.Name = "TopBar"
 topBar.Size = UDim2.new(1, 0, 0, 45)
-topBar.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
+topBar.BackgroundColor3 = theme.TopBar
 topBar.BorderSizePixel = 0
 topBar.Parent = mainFrame
 
@@ -81,11 +102,10 @@ local topCorner = Instance.new("UICorner")
 topCorner.CornerRadius = UDim.new(0, 12)
 topCorner.Parent = topBar
 
--- Hide bottom corners of the top bar to merge with the frame
 local topBarCover = Instance.new("Frame")
 topBarCover.Size = UDim2.new(1, 0, 0, 10)
 topBarCover.Position = UDim2.new(0, 0, 1, -10)
-topBarCover.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
+topBarCover.BackgroundColor3 = theme.TopBar
 topBarCover.BorderSizePixel = 0
 topBarCover.Parent = topBar
 
@@ -94,472 +114,549 @@ title.Name = "Title"
 title.Size = UDim2.new(0.7, 0, 1, 0)
 title.Position = UDim2.fromOffset(15, 0)
 title.BackgroundTransparency = 1
-title.Text = "XIUT MOBILE"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Text = "HITBOX EXTENDER"
+title.TextColor3 = theme.TextActive
 title.Font = Enum.Font.GothamBold
-title.TextSize = 16
+title.TextSize = 15
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = topBar
 
--- Gradient for title text style
-local textGradient = Instance.new("UIGradient")
-textGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 180, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 255, 180))
+local titleGradient = Instance.new("UIGradient")
+titleGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, theme.AccentGlow),
+	ColorSequenceKeypoint.new(1, theme.AccentGreen)
 })
-textGradient.Parent = title
+titleGradient.Parent = title
 
-local closeButton = Instance.new("TextButton")
-closeButton.Name = "CloseButton"
-closeButton.Size = UDim2.fromOffset(30, 30)
-closeButton.Position = UDim2.new(1, -40, 0.5, -15)
-closeButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
-closeButton.Text = "-"
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.Font = Enum.Font.GothamBold
-closeButton.TextSize = 18
-closeButton.Parent = topBar
-addCorner(closeButton, 6)
+local closeBtn = Instance.new("TextButton")
+closeBtn.Name = "CloseButton"
+closeBtn.Size = UDim2.fromOffset(30, 30)
+closeBtn.Position = UDim2.new(1, -40, 0.5, -15)
+closeBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+closeBtn.Text = "−"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 18
+closeBtn.Parent = topBar
+addCorner(closeBtn, 6)
 
--- Content Scroll Frame
-local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Name = "ScrollFrame"
-scrollFrame.Size = UDim2.new(1, -20, 1, -65)
-scrollFrame.Position = UDim2.fromOffset(10, 55)
-scrollFrame.BackgroundTransparency = 1
-scrollFrame.BorderSizePixel = 0
-scrollFrame.ScrollBarThickness = 4
-scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(60, 60, 70)
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0) -- Auto scale through layout
-scrollFrame.Parent = mainFrame
+-- Content Area
+local contentArea = Instance.new("ScrollingFrame")
+contentArea.Name = "ContentArea"
+contentArea.Size = UDim2.new(1, -20, 1, -55)
+contentArea.Position = UDim2.fromOffset(10, 50)
+contentArea.BackgroundTransparency = 1
+contentArea.BorderSizePixel = 0
+contentArea.ScrollBarThickness = 3
+contentArea.ScrollBarImageColor3 = theme.Border
+contentArea.Parent = mainFrame
 
-local listLayout = Instance.new("UIListLayout")
-listLayout.Padding = UDim.new(0, 10)
-listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-listLayout.Parent = scrollFrame
+local pageLayout = Instance.new("UIListLayout")
+pageLayout.Padding = UDim.new(0, 8)
+pageLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+pageLayout.Parent = contentArea
 
--- Automatically expand canvas size based on content
-listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    scrollFrame.CanvasSize = UDim2.fromOffset(0, listLayout.AbsoluteContentSize.Y + 20)
+pageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	contentArea.CanvasSize = UDim2.fromOffset(0, pageLayout.AbsoluteContentSize.Y + 15)
 end)
 
--- Component Helper Functions
-local function createButton(parent, label, onClick)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, 0, 0, 40)
-    button.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-    button.Text = label
-    button.TextColor3 = Color3.fromRGB(200, 200, 200)
-    button.Font = Enum.Font.GothamMedium
-    button.TextSize = 14
-    button.Parent = parent
-    
-    addCorner(button, 8)
-    addStroke(button, Color3.fromRGB(48, 48, 56))
-
-    -- Hover / Touch effect
-    button.MouseEnter:Connect(function()
-        button.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
-    end)
-    button.MouseLeave:Connect(function()
-        button.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-    end)
-
-    button.MouseButton1Click:Connect(onClick)
-    return button
+-- Component Builders
+local function addSection(text)
+	local sectionLabel = Instance.new("TextLabel")
+	sectionLabel.Size = UDim2.new(1, -10, 0, 20)
+	sectionLabel.BackgroundTransparency = 1
+	sectionLabel.Text = string.upper(text)
+	sectionLabel.TextColor3 = theme.AccentGlow
+	sectionLabel.Font = Enum.Font.GothamBold
+	sectionLabel.TextSize = 10
+	sectionLabel.TextXAlignment = Enum.TextXAlignment.Left
+	sectionLabel.Parent = contentArea
 end
 
-local function updateButtonState(btn, state, activeLabel, inactiveLabel)
-    if state then
-        btn.Text = activeLabel
-        btn.TextColor3 = Color3.fromRGB(0, 255, 180)
-        btn.UIStroke.Color = Color3.fromRGB(0, 180, 120)
-    else
-        btn.Text = inactiveLabel
-        btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-        btn.UIStroke.Color = Color3.fromRGB(48, 48, 56)
-    end
+local function addButton(text, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, 0, 0, 38)
+	btn.BackgroundColor3 = theme.CardBg
+	btn.Text = text
+	btn.TextColor3 = theme.TextActive
+	btn.Font = Enum.Font.GothamMedium
+	btn.TextSize = 13
+	btn.Parent = contentArea
+	addCorner(btn, 8)
+	addStroke(btn, theme.Border, 1)
+	btn.MouseEnter:Connect(function()
+		btn.BackgroundColor3 = Color3.fromRGB(32, 32, 40)
+	end)
+	btn.MouseLeave:Connect(function()
+		btn.BackgroundColor3 = theme.CardBg
+	end)
+	btn.MouseButton1Click:Connect(callback)
+	return btn
 end
 
--- State variables and tables for active player elements and connections
-local playerConnections = {}
-local activeESPObjects = {}
+local function addToggle(text, defaultState, callback)
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, 0, 0, 38)
+	frame.BackgroundColor3 = theme.CardBg
+	frame.Parent = contentArea
+	addCorner(frame, 8)
+	addStroke(frame, theme.Border, 1)
 
--- Forward declaration of updateAllPlayers
-local updateAllPlayers
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0.65, 0, 1, 0)
+	label.Position = UDim2.fromOffset(10, 0)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = theme.TextActive
+	label.Font = Enum.Font.GothamMedium
+	label.TextSize = 12
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = frame
 
--- Hitbox Control Section
-local hitboxSection = Instance.new("Frame")
-hitboxSection.Size = UDim2.new(1, 0, 0, 95)
-hitboxSection.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
-hitboxSection.BorderSizePixel = 0
-hitboxSection.Parent = scrollFrame
-addCorner(hitboxSection, 8)
-addStroke(hitboxSection, Color3.fromRGB(38, 38, 44))
+	local toggleButton = Instance.new("TextButton")
+	toggleButton.Size = UDim2.fromOffset(36, 20)
+	toggleButton.Position = UDim2.new(1, -46, 0.5, -10)
+	toggleButton.BackgroundColor3 = defaultState and theme.AccentGreen or Color3.fromRGB(50, 50, 60)
+	toggleButton.Text = ""
+	toggleButton.Parent = frame
+	addCorner(toggleButton, 10)
 
-local hitboxTitle = Instance.new("TextLabel")
-hitboxTitle.Size = UDim2.new(1, -20, 0, 30)
-hitboxTitle.Position = UDim2.fromOffset(10, 5)
-hitboxTitle.BackgroundTransparency = 1
-hitboxTitle.Text = "EXPANSOR DE HITBOX"
-hitboxTitle.TextColor3 = Color3.fromRGB(150, 150, 160)
-hitboxTitle.Font = Enum.Font.GothamBold
-hitboxTitle.TextSize = 12
-hitboxTitle.TextXAlignment = Enum.TextXAlignment.Left
-hitboxTitle.Parent = hitboxSection
+	local indicator = Instance.new("Frame")
+	indicator.Size = UDim2.fromOffset(14, 14)
+	indicator.Position = UDim2.new(0, defaultState and 18 or 3, 0.5, -7)
+	indicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	indicator.BorderSizePixel = 0
+	indicator.Parent = toggleButton
+	addCorner(indicator, 7)
 
-local sizeInput = Instance.new("TextBox")
-sizeInput.Size = UDim2.new(0.4, -5, 0, 40)
-sizeInput.Position = UDim2.fromOffset(10, 40)
-sizeInput.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-sizeInput.Text = tostring(settings.hitboxSize)
-sizeInput.PlaceholderText = "Tamanho"
-sizeInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-sizeInput.Font = Enum.Font.GothamMedium
-sizeInput.TextSize = 14
-sizeInput.Parent = hitboxSection
-addCorner(sizeInput, 8)
-addStroke(sizeInput, Color3.fromRGB(48, 48, 56))
+	local active = defaultState
+	toggleButton.MouseButton1Click:Connect(function()
+		active = not active
+		local targetX = active and 18 or 3
+		local targetColor = active and theme.AccentGreen or Color3.fromRGB(50, 50, 60)
+		TweenService:Create(indicator, TweenInfo.new(0.2), {Position = UDim2.new(0, targetX, 0.5, -7)}):Play()
+		TweenService:Create(toggleButton, TweenInfo.new(0.2), {BackgroundColor3 = targetColor}):Play()
+		callback(active)
+	end)
 
-local toggleHitboxBtn
-toggleHitboxBtn = createButton(hitboxSection, "Ativar Hitbox", function()
-    settings.hitboxEnabled = not settings.hitboxEnabled
-    updateButtonState(toggleHitboxBtn, settings.hitboxEnabled, "Hitbox: ATIVADO", "Hitbox: DESATIVADO")
-    updateAllPlayers()
-end)
-toggleHitboxBtn.Size = UDim2.new(0.6, -15, 0, 40)
-toggleHitboxBtn.Position = UDim2.new(0.4, 5, 0, 40)
+	return { frame = frame, getState = function() return active end, setState = function(state)
+		active = state
+		local targetX = active and 18 or 3
+		local targetColor = active and theme.AccentGreen or Color3.fromRGB(50, 50, 60)
+		indicator.Position = UDim2.new(0, targetX, 0.5, -7)
+		toggleButton.BackgroundColor3 = targetColor
+		callback(active)
+	end }
+end
 
-sizeInput:GetPropertyChangedSignal("Text"):Connect(function()
-    local val = tonumber(sizeInput.Text)
-    if val then
-        settings.hitboxSize = val
-        if settings.hitboxEnabled then
-            updateAllPlayers()
-        end
-    end
-end)
+local function addSlider(text, min, max, defaultVal, callback)
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, 0, 0, 48)
+	frame.BackgroundColor3 = theme.CardBg
+	frame.Parent = contentArea
+	addCorner(frame, 8)
+	addStroke(frame, theme.Border, 1)
 
--- ESP Section
-local espToggleBtn
-local espNamesToggleBtn
-local teamToggleBtn
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0.7, 0, 0, 20)
+	label.Position = UDim2.fromOffset(10, 4)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = theme.TextActive
+	label.Font = Enum.Font.GothamMedium
+	label.TextSize = 12
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = frame
 
-espToggleBtn = createButton(scrollFrame, "ESP Glow: DESATIVADO", function()
-    settings.espEnabled = not settings.espEnabled
-    updateButtonState(espToggleBtn, settings.espEnabled, "ESP Glow: ATIVADO", "ESP Glow: DESATIVADO")
-    updateAllPlayers()
-end)
+	local valueLabel = Instance.new("TextLabel")
+	valueLabel.Size = UDim2.new(0.25, 0, 0, 20)
+	valueLabel.Position = UDim2.new(0.7, 0, 0, 4)
+	valueLabel.BackgroundTransparency = 1
+	valueLabel.Text = tostring(defaultVal)
+	valueLabel.TextColor3 = theme.AccentGlow
+	valueLabel.Font = Enum.Font.GothamBold
+	valueLabel.TextSize = 12
+	valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+	valueLabel.TextScaled = true
+	valueLabel.Parent = frame
 
-espNamesToggleBtn = createButton(scrollFrame, "ESP Nomes: DESATIVADO", function()
-    settings.espNamesEnabled = not settings.espNamesEnabled
-    updateButtonState(espNamesToggleBtn, settings.espNamesEnabled, "ESP Nomes: ATIVADO", "ESP Nomes: DESATIVADO")
-    updateAllPlayers()
-end)
+	local sliderBg = Instance.new("Frame")
+	sliderBg.Size = UDim2.new(1, -20, 0, 6)
+	sliderBg.Position = UDim2.new(0, 10, 0.7, 0)
+	sliderBg.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+	sliderBg.BorderSizePixel = 0
+	sliderBg.Parent = frame
+	addCorner(sliderBg, 3)
 
-teamToggleBtn = createButton(scrollFrame, "Ignorar Time: ATIVADO", function()
-    settings.ignoreTeam = not settings.ignoreTeam
-    updateButtonState(teamToggleBtn, settings.ignoreTeam, "Ignorar Time: ATIVADO", "Ignorar Time: DESATIVADO")
-    updateAllPlayers()
-end)
+	local sliderFill = Instance.new("Frame")
+	sliderFill.Size = UDim2.fromScale((defaultVal - min) / (max - min), 1)
+	sliderFill.BackgroundColor3 = theme.AccentGlow
+	sliderFill.BorderSizePixel = 0
+	sliderFill.Parent = sliderBg
+	addCorner(sliderFill, 3)
 
--- Initialize state styles
-updateButtonState(teamToggleBtn, settings.ignoreTeam, "Ignorar Time: ATIVADO", "Ignorar Time: DESATIVADO")
+	local sliderBtn = Instance.new("TextButton")
+	sliderBtn.Size = UDim2.fromOffset(14, 14)
+	sliderBtn.Position = UDim2.new((defaultVal - min) / (max - min), -7, 0.5, -7)
+	sliderBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	sliderBtn.Text = ""
+	sliderBtn.Parent = sliderBg
+	addCorner(sliderBtn, 7)
+	addStroke(sliderBtn, theme.AccentGlow, 1)
 
--- Floating Toggle/Minimize Button (Essential for Mobile users)
+	local dragging = false
+	local function updateSlider(input)
+		local totalWidth = sliderBg.AbsoluteSize.X
+		local inputX = input.Position.X - sliderBg.AbsolutePosition.X
+		local ratio = math.clamp(inputX / totalWidth, 0, 1)
+		sliderFill.Size = UDim2.fromScale(ratio, 1)
+		sliderBtn.Position = UDim2.new(ratio, -7, 0.5, -7)
+		local val = min + (max - min) * ratio
+		valueLabel.Text = tostring(val)
+		callback(val)
+	end
+
+	sliderBtn.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			updateSlider(input)
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = false
+		end
+	end)
+
+	return { setValue = function(val)
+		local ratio = (val - min) / (max - min)
+		sliderFill.Size = UDim2.fromScale(ratio, 1)
+		sliderBtn.Position = UDim2.new(ratio, -7, 0.5, -7)
+		valueLabel.Text = tostring(val)
+	end }
+end
+
+-- Floating Button
 local floatButton = Instance.new("TextButton")
 floatButton.Name = "XiutFloatButton"
 floatButton.Size = UDim2.fromOffset(50, 50)
 floatButton.Position = UDim2.new(0.05, 0, 0.15, 0)
-floatButton.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
-floatButton.Text = "XIUT"
-floatButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+floatButton.BackgroundColor3 = theme.TopBar
+floatButton.Text = "HB"
+floatButton.TextColor3 = theme.TextActive
 floatButton.Font = Enum.Font.GothamBold
 floatButton.TextSize = 12
 floatButton.Parent = screenGui
 floatButton.Visible = false
-
 addCorner(floatButton, 25)
-addStroke(floatButton, Color3.fromRGB(0, 180, 255), 2)
+addStroke(floatButton, theme.AccentGlow, 2)
 
 local floatGradient = Instance.new("UIGradient")
 floatGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 180)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 180, 255))
+	ColorSequenceKeypoint.new(0, theme.AccentGlow),
+	ColorSequenceKeypoint.new(1, theme.AccentGreen)
 })
 floatGradient.Parent = floatButton
 
--- Minimize/Toggle actions
-closeButton.MouseButton1Click:Connect(function()
-    mainFrame.Visible = false
-    floatButton.Visible = true
+-- Minimize/Toggle
+closeBtn.MouseButton1Click:Connect(function()
+	mainFrame.Visible = false
+	floatButton.Visible = true
 end)
-
 floatButton.MouseButton1Click:Connect(function()
-    mainFrame.Visible = true
-    floatButton.Visible = false
+	mainFrame.Visible = true
+	floatButton.Visible = false
 end)
 
--- Draggable Logic (Multiplatform Touch + Mouse)
+-- Draggable
 local function makeDraggable(guiFrame)
-    local dragging, dragInput, dragStart, startPosition
-
-    local function update(input)
-        local delta = input.Position - dragStart
-        guiFrame.Position = UDim2.new(
-            startPosition.X.Scale, 
-            startPosition.X.Offset + delta.X, 
-            startPosition.Y.Scale, 
-            startPosition.Y.Offset + delta.Y
-        )
-    end
-
-    guiFrame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPosition = guiFrame.Position
-
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-
-    guiFrame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            update(input)
-        end
-    end)
+	local dragging, dragInput, dragStart, startPosition
+	local function update(input)
+		local delta = input.Position - dragStart
+		guiFrame.Position = UDim2.new(
+			startPosition.X.Scale,
+			startPosition.X.Offset + delta.X,
+			startPosition.Y.Scale,
+			startPosition.Y.Offset + delta.Y
+		)
+	end
+	guiFrame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPosition = guiFrame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+	guiFrame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			update(input)
+		end
+	end)
 end
-
 makeDraggable(mainFrame)
 makeDraggable(floatButton)
 
--- Event-driven ESP and Hitbox Processor (Optimized to change values only when needed)
-local function clearEspIndicators(character)
-    if not character then return end
-    local highlight = character:FindFirstChild("XiutHighlight")
-    if highlight then highlight:Destroy() end
+-- ==================== HITBOX EXTENDER LOGIC ====================
 
-    local billboard = character:FindFirstChild("XiutBillboard")
-    if billboard then billboard:Destroy() end
+local hitboxEnabled = false
+local hitboxSize = 8
+local hitboxTransparency = 0.5
+local noCollision = false
+local selectedParts = {
+	HumanoidRootPart = true,
+	Head = true,
+	Torso = true,
+	["Left Arm"] = true,
+	["Right Arm"] = true,
+	["Left Leg"] = true,
+	["Right Leg"] = true,
+}
+
+local playersData = {}
+local Camera = Workspace.CurrentCamera
+
+local function isPartSelected(partName)
+	for name, enabled in pairs(selectedParts) do
+		if enabled then
+			if name == "Left Arm" and (string.match(partName, "Left") and (string.match(partName, "Arm") or string.match(partName, "Hand"))) then
+				return true
+			end
+			if name == "Right Arm" and (string.match(partName, "Right") and (string.match(partName, "Arm") or string.match(partName, "Hand"))) then
+				return true
+			end
+			if name == "Left Leg" and (string.match(partName, "Left") and (string.match(partName, "Leg") or string.match(partName, "Foot"))) then
+				return true
+			end
+			if name == "Right Leg" and (string.match(partName, "Right") and (string.match(partName, "Leg") or string.match(partName, "Foot"))) then
+				return true
+			end
+			if partName == name then
+				return true
+			end
+		end
+	end
+	return false
 end
 
-local function processPlayer(p)
-    if p == localPlayer then return end
-    
-    local char = p.Character
-    if not char then return end
-    
-    local root = char:FindFirstChild("HumanoidRootPart")
-    local head = char:FindFirstChild("Head")
-    
-    -- Cache status checks
-    local onSameTeam = p.Team == localPlayer.Team
-    local shouldApply = not (settings.ignoreTeam and onSameTeam)
-    
-    -- 1. Hitbox expansion (only assign when size or state changes)
-    if root then
-        if settings.hitboxEnabled and shouldApply then
-            local targetSize = Vector3.new(settings.hitboxSize, settings.hitboxSize, settings.hitboxSize)
-            if root.Size ~= targetSize then
-                root.Size = targetSize
-                root.CanCollide = false
-                root.Transparency = settings.transparency
-                root.Color = Color3.fromRGB(255, 0, 50)
-                root.Material = Enum.Material.Neon
-            end
-        else
-            -- Reset hitbox size back to standard Roblox values if not enabled
-            local defaultSize = Vector3.new(2, 2, 1)
-            if root.Size ~= defaultSize then
-                root.Size = defaultSize
-                root.CanCollide = true
-                root.Transparency = 1
-            end
-        end
-    end
+local function setupPartHooks(part, data)
+	if not part:IsA("BasePart") then return end
 
-    -- 2. ESP Glow (Highlight) - Reuse highlight instead of rebuilding
-    if settings.espEnabled and shouldApply then
-        local highlight = char:FindFirstChild("XiutHighlight")
-        if not highlight then
-            highlight = Instance.new("Highlight")
-            highlight.Name = "XiutHighlight"
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.FillTransparency = 0.5
-            highlight.OutlineTransparency = 0.1
-            highlight.Parent = char
-        end
-        local targetColor = onSameTeam and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-        if highlight.FillColor ~= targetColor then
-            highlight.FillColor = targetColor
-        end
-    else
-        local highlight = char:FindFirstChild("XiutHighlight")
-        if highlight then highlight:Destroy() end
-    end
+	local props = {
+		Size = part.Size,
+		Transparency = part.Transparency,
+		Massless = part.Massless,
+		CanCollide = part.CanCollide,
+	}
 
-    -- 3. ESP Names (Billboard)
-    if settings.espNamesEnabled and shouldApply and head then
-        local billboard = char:FindFirstChild("XiutBillboard")
-        if not billboard then
-            billboard = Instance.new("BillboardGui")
-            billboard.Name = "XiutBillboard"
-            billboard.AlwaysOnTop = true
-            billboard.Size = UDim2.fromOffset(120, 25)
-            billboard.StudsOffset = Vector3.new(0, 2.5, 0)
-            
-            local nameLabel = Instance.new("TextLabel")
-            nameLabel.Size = UDim2.fromScale(1, 1)
-            nameLabel.BackgroundTransparency = 1
-            nameLabel.TextColor3 = onSameTeam and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
-            nameLabel.Font = Enum.Font.GothamBold
-            nameLabel.TextSize = 11
-            nameLabel.TextOutlineTransparency = 0
-            nameLabel.TextOutlineColor3 = Color3.new(0,0,0)
-            nameLabel.Parent = billboard
-            
-            billboard.Parent = char
-        end
-        
-        -- Add to list for light-weight distance tracking
-        activeESPObjects[p.UserId] = billboard
-    else
-        local billboard = char:FindFirstChild("XiutBillboard")
-        if billboard then billboard:Destroy() end
-        activeESPObjects[p.UserId] = nil
-    end
+	local getSizeHook = part:AddGetHook("Size", props.Size)
+	local getTransparencyHook = part:AddGetHook("Transparency", props.Transparency)
+	local getMasslessHook = part:AddGetHook("Massless", props.Massless)
+	local getCanCollideHook = part:AddGetHook("CanCollide", props.CanCollide)
+
+	local setSizeHook = part:AddSetHook("Size", function(_, value)
+		props.Size = value
+		getSizeHook:Modify("Size", props.Size)
+		if hitboxEnabled and isPartSelected(part.Name) and data.isActive and not data.isDead then
+			return Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+		end
+		return props.Size
+	end)
+
+	local setTransparencyHook = part:AddSetHook("Transparency", function(_, value)
+		props.Transparency = value
+		getTransparencyHook:Modify("Transparency", props.Transparency)
+		if hitboxEnabled and isPartSelected(part.Name) and data.isActive and not data.isDead then
+			return hitboxTransparency
+		end
+		return props.Transparency
+	end)
+
+	local setMasslessHook = part:AddSetHook("Massless", function(_, value)
+		props.Massless = value
+		getMasslessHook:Modify("Massless", props.Massless)
+		if hitboxEnabled and part.Name ~= "HumanoidRootPart" and data.isActive and not data.isDead then
+			return true
+		end
+		return props.Massless
+	end)
+
+	local setCanCollideHook = part:AddSetHook("CanCollide", function(_, value)
+		props.CanCollide = value
+		getCanCollideHook:Modify("CanCollide", props.CanCollide)
+		if hitboxEnabled and noCollision and data.isActive and not data.isDead then
+			return false
+		end
+		return props.CanCollide
+	end)
+
+	part.Destroying:Connect(function()
+		getSizeHook:Remove()
+		getTransparencyHook:Remove()
+		getMasslessHook:Remove()
+		getCanCollideHook:Remove()
+		setSizeHook:Remove()
+		setTransparencyHook:Remove()
+		setMasslessHook:Remove()
+		setCanCollideHook:Remove()
+	end)
 end
 
-updateAllPlayers = function()
-    for _, p in ipairs(Players:GetPlayers()) do
-        pcall(function()
-            processPlayer(p)
-        end)
-    end
+local function setupCharacter(player, character)
+	if not character then return end
+	if not playersData[player] then
+		playersData[player] = { isActive = true, isDead = false }
+	end
+	local data = playersData[player]
+
+	local humanoid = character:FindFirstChildWhichIsA("Humanoid")
+	if humanoid then
+		humanoid.StateChanged:Connect(function(_, newState)
+			data.isDead = newState == Enum.HumanoidStateType.Dead
+		end)
+	end
+
+	for _, part in pairs(character:GetChildren()) do
+		if part:IsA("BasePart") then
+			setupPartHooks(part, data)
+		end
+	end
+
+	character.ChildAdded:Connect(function(child)
+		if child:IsA("BasePart") then
+			setupPartHooks(child, data)
+		end
+	end)
 end
 
--- Handle character spawn/respawn connections
-local function setupPlayerConnections(p)
-    if p == localPlayer then return end
-    
-    local function onCharAdded(char)
-        task.wait(0.5) -- Wait briefly for character parts to initialize safely
-        pcall(function()
-            processPlayer(p)
-        end)
-    end
-
-    local function onCharRemoving(char)
-        pcall(function()
-            clearEspIndicators(char)
-            activeESPObjects[p.UserId] = nil
-        end)
-    end
-
-    -- Clean up previous connections if any
-    if playerConnections[p.UserId] then
-        for _, conn in ipairs(playerConnections[p.UserId]) do
-            conn:Disconnect()
-        end
-    end
-
-    local conns = {}
-    table.insert(conns, p.CharacterAdded:Connect(onCharAdded))
-    table.insert(conns, p.CharacterRemoving:Connect(onCharRemoving))
-    playerConnections[p.UserId] = conns
-
-    if p.Character then
-        onCharAdded(p.Character)
-    end
+local function addPlayer(player)
+	if player == localPlayer then return end
+	playersData[player] = { isActive = true, isDead = false }
+	if player.Character then
+		setupCharacter(player, player.Character)
+	end
+	player.CharacterAdded:Connect(function(character)
+		setupCharacter(player, character)
+	end)
 end
 
-local function removePlayerConnections(p)
-    pcall(function()
-        if p.Character then
-            clearEspIndicators(p.Character)
-        end
-    end)
-    activeESPObjects[p.UserId] = nil
-    if playerConnections[p.UserId] then
-        for _, conn in ipairs(playerConnections[p.UserId]) do
-            conn:Disconnect()
-        end
-        playerConnections[p.UserId] = nil
-    end
+for _, player in pairs(Players:GetPlayers()) do
+	addPlayer(player)
 end
-
--- Initialize for existing players
-for _, p in ipairs(Players:GetPlayers()) do
-    setupPlayerConnections(p)
-end
-
--- Listen for new players entering or leaving
-Players.PlayerAdded:Connect(setupPlayerConnections)
-Players.PlayerRemoving:Connect(removePlayerConnections)
-
--- Lightweight distance update loop (Runs every 0.5s ONLY for updating distance label)
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-        
-        pcall(function()
-            local myChar = localPlayer.Character
-            local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
-            
-            if myRoot and settings.espNamesEnabled then
-                local myPos = myRoot.Position
-                for userId, billboard in pairs(activeESPObjects) do
-                    local p = Players:GetPlayerByUserId(userId)
-                    if p and p.Character and billboard and billboard.Parent then
-                        local root = p.Character:FindFirstChild("HumanoidRootPart")
-                        local label = billboard:FindFirstChildOfClass("TextLabel")
-                        if root and label then
-                            local dist = math.floor((myPos - root.Position).Magnitude)
-                            label.Text = string.format("%s [%dm]", p.Name, dist)
-                        end
-                    else
-                        activeESPObjects[userId] = nil
-                    end
-                end
-            end
-        end)
-    end
+Players.PlayerAdded:Connect(addPlayer)
+Players.PlayerRemoving:Connect(function(player)
+	playersData[player] = nil
 end)
 
--- Cleanup function to fully remove the script effects when closing/destroying ScreenGui
-screenGui.Destroying:Connect(function()
-    -- Disconnect all events
-    for userId, conns in pairs(playerConnections) do
-        for _, conn in ipairs(conns) do
-            conn:Disconnect()
-        end
-    end
-    -- Reset all hitboxes and clear indicators
-    for _, p in ipairs(Players:GetPlayers()) do
-        pcall(function()
-            if p.Character then
-                clearEspIndicators(p.Character)
-                local root = p.Character:FindFirstChild("HumanoidRootPart")
-                if root then
-                    root.Size = Vector3.new(2, 2, 1)
-                    root.CanCollide = true
-                    root.Transparency = 1
-                end
-            end
-        end)
-    end
+-- ==================== UI CONTROLS ====================
+
+addSection("Hitbox Extender")
+
+local toggleHitbox = addToggle("Enabled", false, function(state)
+	hitboxEnabled = state
 end)
 
-print("[XIUT MOBILE] Inicializado sem lag e totalmente otimizado!")
+local sizeSlider = addSlider("Size", 2, 50, hitboxSize, function(val)
+	hitboxSize = val
+end)
+
+local transSlider = addSlider("Transparency", 0, 1, hitboxTransparency, function(val)
+	hitboxTransparency = val
+end)
+
+local toggleCollision = addToggle("No Collision", false, function(state)
+	noCollision = state
+end)
+
+addSection("Body Parts")
+
+local partToggles = {}
+local partList = { "HumanoidRootPart", "Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg" }
+local partToggleRefs = {}
+
+local function createPartToggle(name)
+	local ref = addToggle(name, selectedParts[name] or false, function(state)
+		selectedParts[name] = state
+	end)
+	partToggleRefs[name] = ref
+end
+
+for _, name in pairs(partList) do
+	createPartToggle(name)
+end
+
+addSection("ESP")
+
+local espEnabled = false
+local espType = "Name"
+
+local toggleESP = addToggle("ESP Name", false, function(state)
+	espEnabled = state
+end)
+
+local function updateESP()
+	if not espEnabled then
+		for player, data in pairs(playersData) do
+			if data.nameLabel then
+				data.nameLabel.Visible = false
+			end
+		end
+		return
+	end
+	local Camera = Workspace.CurrentCamera
+	for player, data in pairs(playersData) do
+		if not data.nameLabel then
+			data.nameLabel = Drawing.new("Text")
+			data.nameLabel.Center = true
+			data.nameLabel.Outline = true
+			data.nameLabel.Size = 16
+			data.nameLabel.Color = Color3.fromRGB(255, 255, 255)
+			data.nameLabel.OutlineColor = Color3.fromRGB(0, 0, 0)
+		end
+		local char = player.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			local root = char.HumanoidRootPart
+			local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+			if onScreen then
+				data.nameLabel.Text = player.Name
+				data.nameLabel.Position = Vector2.new(pos.X, pos.Y - 50)
+				data.nameLabel.Visible = true
+			else
+				data.nameLabel.Visible = false
+			end
+		else
+			data.nameLabel.Visible = false
+		end
+	end
+end
+
+RunService:BindToRenderStep("ESPUpdate", Enum.RenderPriority.Camera.Value - 1, updateESP)
+
+-- Mini info
+addSection("Info")
+local infoText = Instance.new("TextLabel")
+infoText.Size = UDim2.new(1, -10, 0, 60)
+infoText.BackgroundTransparency = 1
+infoText.Text = "Hitbox Extender para Roblox\nUse MT-Api para modificar hitboxes dos jogadores\nApenas visivel no lado do cliente"
+infoText.TextColor3 = theme.TextMuted
+infoText.Font = Enum.Font.GothamMedium
+infoText.TextSize = 11
+infoText.TextWrapped = true
+infoText.TextXAlignment = Enum.TextXAlignment.Left
+infoText.Parent = contentArea
+
+print("[XIUT] Hitbox Extender carregado com sucesso!")
