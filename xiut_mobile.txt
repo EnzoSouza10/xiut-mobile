@@ -1,502 +1,333 @@
-local env = getgenv and getgenv() or _G
-if env.XiutLoaded then return end
-env.XiutLoaded = true
+local e = getgenv and getgenv() or _G
+if e.x then return end
+e.x = true
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
-local Workspace = game:GetService("Workspace")
-local lp = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
+local P = game:GetService("Players")
+local R = game:GetService("RunService")
+local U = game:GetService("UserInputService")
+local T = game:GetService("TweenService")
+local W = game:GetService("Workspace")
+local lp = P.LocalPlayer
+local C = W.CurrentCamera
 
--- Polyfill waitFn for Xeno (uLua 5.1 may not have task library)
-local waitFn = task and task.wait
-if not waitFn then waitFn = wait end
+local wf = task and task.wait
+if not wf then wf = wait end
 
--- UI
-local parentGui = CoreGui
-pcall(function()
-	if RunService:IsStudio() then
-		parentGui = lp:WaitForChild("PlayerGui")
-	end
-end)
+local g = (function()
+	local s = Instance.new("ScreenGui")
+	local ok = pcall(function() if not game:GetService("CoreGui") then error() end s.Parent = game:GetService("CoreGui") end)
+	if not ok then s.Parent = lp:WaitForChild("PlayerGui") end
+	s.Name = string.char(math.random(65,90), math.random(65,90), math.random(65,90), math.random(65,90))
+	s.ResetOnSpawn = false
+	local o = s.Parent:FindFirstChild(s.Name)
+	if o and o ~= s then o:Destroy() end
+	return s
+end)()
 
-local old = parentGui:FindFirstChild("XiutGUI")
-if old then old:Destroy() end
+local cl = {bg=Color3.fromRGB(18,18,22),cd=Color3.fromRGB(26,26,32),tx=Color3.fromRGB(225,225,230),bl=Color3.fromRGB(0,180,255),gr=Color3.fromRGB(0,250,130),rd=Color3.fromRGB(235,60,60),mt=Color3.fromRGB(130,130,140)}
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "XiutGUI"
-gui.ResetOnSpawn = false
-gui.Parent = parentGui
+local function cr(p,r) local c=Instance.new("UICorner");c.CornerRadius=UDim.new(0,r);c.Parent=p end
 
-local C = {
-	bg = Color3.fromRGB(18, 18, 22),
-	card = Color3.fromRGB(26, 26, 32),
-	border = Color3.fromRGB(45, 45, 55),
-	text = Color3.fromRGB(225, 225, 230),
-	muted = Color3.fromRGB(130, 130, 140),
-	blue = Color3.fromRGB(0, 180, 255),
-	green = Color3.fromRGB(0, 250, 130),
-	red = Color3.fromRGB(235, 60, 60),
-}
+local w = Instance.new("Frame")
+w.Name = "A"
+w.Size = UDim2.fromOffset(360, 400)
+w.Position = UDim2.new(0.5,-180,0.5,-200)
+w.BackgroundColor3 = cl.bg
+w.BorderSizePixel = 0
+w.ClipsDescendants = true
+w.Parent = g
+cr(w,8)
 
-local function corner(p, r)
-	local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, r); c.Parent = p
-end
+local h = Instance.new("Frame")
+h.Name = "B"
+h.Size = UDim2.new(1,0,0,38)
+h.BackgroundColor3 = Color3.fromRGB(22,22,28)
+h.BorderSizePixel = 0
+h.Parent = w
+cr(h,8)
 
--- Main window
-local main = Instance.new("Frame")
-main.Name = "Main"
-main.Size = UDim2.fromOffset(380, 420)
-main.Position = UDim2.new(0.5, -190, 0.5, -210)
-main.BackgroundColor3 = C.bg
-main.BorderSizePixel = 0
-main.ClipsDescendants = true
-main.Parent = gui
-corner(main, 10)
+Instance.new("Frame",h).Size = UDim2.new(1,0,0,6)
+Instance.new("Frame",h).Position = UDim2.new(0,0,1,-6)
 
--- Top bar
-local bar = Instance.new("Frame")
-bar.Name = "Bar"
-bar.Size = UDim2.new(1, 0, 0, 40)
-bar.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
-bar.BorderSizePixel = 0
-bar.Parent = main
-corner(bar, 10)
+local tl = Instance.new("TextLabel",h)
+tl.Size = UDim2.new(0.6,0,1,0)
+tl.Position = UDim2.fromOffset(10,0)
+tl.BackgroundTransparency = 1
+tl.Text = "U I"
+tl.TextColor3 = cl.tx
+tl.Font = Enum.Font.GothamBold
+tl.TextSize = 13
+tl.TextXAlignment = Enum.TextXAlignment.Left
 
-local barCover = Instance.new("Frame")
-barCover.Size = UDim2.new(1, 0, 0, 8)
-barCover.Position = UDim2.new(0, 0, 1, -8)
-barCover.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
-barCover.BorderSizePixel = 0
-barCover.Parent = bar
+local bx = Instance.new("TextButton",h)
+bx.Size = UDim2.fromOffset(24,24)
+bx.Position = UDim2.new(1,-32,0.5,-12)
+bx.BackgroundColor3 = cl.rd
+bx.Text = "—"
+bx.TextColor3 = Color3.fromRGB(255,255,255)
+bx.Font = Enum.Font.GothamBold
+bx.TextSize = 14
+cr(bx,5)
 
-local titleLbl = Instance.new("TextLabel")
-titleLbl.Size = UDim2.new(0.6, 0, 1, 0)
-titleLbl.Position = UDim2.fromOffset(12, 0)
-titleLbl.BackgroundTransparency = 1
-titleLbl.Text = "XIUT EXTENDER"
-titleLbl.TextColor3 = C.text
-titleLbl.Font = Enum.Font.GothamBold
-titleLbl.TextSize = 14
-titleLbl.TextXAlignment = Enum.TextXAlignment.Left
-titleLbl.Parent = bar
+local s = Instance.new("ScrollingFrame")
+s.Name = "C"
+s.Size = UDim2.new(1,-14,1,-52)
+s.Position = UDim2.fromOffset(7,44)
+s.BackgroundTransparency = 1
+s.BorderSizePixel = 0
+s.ScrollBarThickness = 3
+s.ScrollBarImageColor3 = Color3.fromRGB(50,50,60)
+s.Parent = w
 
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.fromOffset(26, 26)
-closeBtn.Position = UDim2.new(1, -34, 0.5, -13)
-closeBtn.BackgroundColor3 = C.red
-closeBtn.Text = "−"
-closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 15
-closeBtn.Parent = bar
-corner(closeBtn, 6)
+local ly = Instance.new("UIListLayout",s)
+ly.Padding = UDim.new(0,5)
+ly.HorizontalAlignment = Enum.HorizontalAlignment.Center
+ly.SortOrder = Enum.SortOrder.LayoutOrder
+ly:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() s.CanvasSize = UDim2.fromOffset(0,ly.AbsoluteContentSize.Y+8) end)
 
--- Content area (single scroll, no tabs for simplicity)
-local scroll = Instance.new("ScrollingFrame")
-scroll.Name = "Scroll"
-scroll.Size = UDim2.new(1, -16, 1, -56)
-scroll.Position = UDim2.fromOffset(8, 48)
-scroll.BackgroundTransparency = 1
-scroll.BorderSizePixel = 0
-scroll.ScrollBarThickness = 3
-scroll.ScrollBarImageColor3 = Color3.fromRGB(50, 50, 60)
-scroll.Parent = main
+local fb = Instance.new("TextButton",g)
+fb.Size = UDim2.fromOffset(42,42)
+fb.Position = UDim2.new(0.05,0,0.15,0)
+fb.BackgroundColor3 = Color3.fromRGB(22,22,28)
+fb.Text = ">"
+fb.TextColor3 = cl.tx
+fb.Font = Enum.Font.GothamBold
+fb.TextSize = 14
+fb.Visible = false
+cr(fb,21)
 
-local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 6)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Parent = scroll
-layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	scroll.CanvasSize = UDim2.fromOffset(0, layout.AbsoluteContentSize.Y + 10)
-end)
+bx.MouseButton1Click:Connect(function() w.Visible = false; fb.Visible = true end)
+fb.MouseButton1Click:Connect(function() w.Visible = true; fb.Visible = false end)
 
--- Float button
-local floatBtn = Instance.new("TextButton")
-floatBtn.Size = UDim2.fromOffset(44, 44)
-floatBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
-floatBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
-floatBtn.Text = "X"
-floatBtn.TextColor3 = C.text
-floatBtn.Font = Enum.Font.GothamBold
-floatBtn.TextSize = 14
-floatBtn.Parent = gui
-floatBtn.Visible = false
-corner(floatBtn, 22)
-
-closeBtn.MouseButton1Click:Connect(function() main.Visible = false; floatBtn.Visible = true end)
-floatBtn.MouseButton1Click:Connect(function() main.Visible = true; floatBtn.Visible = false end)
-
--- Draggable
-local dragging = nil
-local dragStart = nil
-local startPos = nil
-main.InputBegan:Connect(function(i)
+local drg, dstart, spos
+w.InputBegan:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-		dragging = true; dragStart = i.Position; startPos = main.Position
-		i.Changed:Connect(function() if i.UserInputState == Enum.UserInputState.End then dragging = false end end)
+		drg = true; dstart = i.Position; spos = w.Position
+		i.Changed:Connect(function() if i.UserInputState == Enum.UserInputState.End then drg = false end end)
 	end
 end)
-UserInputService.InputChanged:Connect(function(i)
-	if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-		local d = i.Position - dragStart
-		main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
+U.InputChanged:Connect(function(i)
+	if drg and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+		local d = i.Position - dstart; w.Position = UDim2.new(spos.X.Scale,spos.X.Offset+d.X,spos.Y.Scale,spos.Y.Offset+d.Y)
 	end
 end)
-floatBtn.InputBegan:Connect(function(i)
+fb.InputBegan:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-		dragging = true; dragStart = i.Position; startPos = floatBtn.Position
-		i.Changed:Connect(function() if i.UserInputState == Enum.UserInputState.End then dragging = false end end)
+		drg = true; dstart = i.Position; spos = fb.Position
+		i.Changed:Connect(function() if i.UserInputState == Enum.UserInputState.End then drg = false end end)
 	end
 end)
-UserInputService.InputChanged:Connect(function(i)
-	if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-		local d = i.Position - dragStart
-		floatBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
+U.InputChanged:Connect(function(i)
+	if drg and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+		local d = i.Position - dstart; fb.Position = UDim2.new(spos.X.Scale,spos.X.Offset+d.X,spos.Y.Scale,spos.Y.Offset+d.Y)
 	end
 end)
 
--- UI components
-local function addLbl(text)
-	local l = Instance.new("TextLabel")
-	l.Size = UDim2.new(1, -10, 0, 20)
+local function lb(t)
+	local l = Instance.new("TextLabel",s)
+	l.Size = UDim2.new(1,-8,0,18)
 	l.BackgroundTransparency = 1
-	l.Text = string.upper(text)
-	l.TextColor3 = C.blue
+	l.Text = string.upper(t)
+	l.TextColor3 = cl.bl
 	l.Font = Enum.Font.GothamBold
-	l.TextSize = 10
+	l.TextSize = 9
 	l.TextXAlignment = Enum.TextXAlignment.Left
-	l.Parent = scroll
 end
 
-local function addToggle(text, def, cb)
-	local f = Instance.new("Frame"); f.Size = UDim2.new(1, 0, 0, 36); f.BackgroundColor3 = C.card; f.Parent = scroll; corner(f, 6)
-	local lbl = Instance.new("TextLabel"); lbl.Size = UDim2.new(0.7, 0, 1, 0); lbl.Position = UDim2.fromOffset(10, 0)
-	lbl.BackgroundTransparency = 1; lbl.Text = text; lbl.TextColor3 = C.text
-	lbl.Font = Enum.Font.GothamMedium; lbl.TextSize = 12; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = f
-	local btn = Instance.new("TextButton"); btn.Size = UDim2.fromOffset(36, 18); btn.Position = UDim2.new(1, -44, 0.5, -9)
-	btn.BackgroundColor3 = def and C.green or Color3.fromRGB(55, 55, 65); btn.Text = ""; btn.Parent = f; corner(btn, 9)
-	local k = Instance.new("Frame"); k.Size = UDim2.fromOffset(12, 12); k.Position = UDim2.new(0, def and 21 or 3, 0.5, -6)
-	k.BackgroundColor3 = Color3.fromRGB(255, 255, 255); k.BorderSizePixel = 0; k.Parent = btn; corner(k, 6)
-	local state = def
-	btn.MouseButton1Click:Connect(function()
-		state = not state
-		TweenService:Create(k, TweenInfo.new(0.15), {Position = UDim2.new(0, state and 21 or 3, 0.5, -6)}):Play()
-		TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = state and C.green or Color3.fromRGB(55, 55, 65)}):Play()
-		cb(state)
+local function tg(t,df,cb)
+	local f = Instance.new("Frame",s); f.Size = UDim2.new(1,0,0,34); f.BackgroundColor3 = cl.cd; cr(f,5)
+	Instance.new("TextLabel",f).Size = UDim2.new(0.7,0,1,0); Instance.new("TextLabel",f).Position = UDim2.fromOffset(8,0); Instance.new("TextLabel",f).BackgroundTransparency = 1
+	Instance.new("TextLabel",f).Text = t; Instance.new("TextLabel",f).TextColor3 = cl.tx; Instance.new("TextLabel",f).Font = Enum.Font.GothamMedium; Instance.new("TextLabel",f).TextSize = 11; Instance.new("TextLabel",f).TextXAlignment = Enum.TextXAlignment.Left
+	local b = Instance.new("TextButton",f); b.Size = UDim2.fromOffset(34,17); b.Position = UDim2.new(1,-42,0.5,-8.5)
+	b.BackgroundColor3 = df and cl.gr or Color3.fromRGB(55,55,65); b.Text = ""; cr(b,8.5)
+	local k = Instance.new("Frame",b); k.Size = UDim2.fromOffset(11,11); k.Position = UDim2.new(0,df and 20 or 3,0.5,-5.5)
+	k.BackgroundColor3 = Color3.fromRGB(255,255,255); k.BorderSizePixel = 0; cr(k,5.5)
+	local st = df
+	b.MouseButton1Click:Connect(function()
+		st = not st
+		T:Create(k,TweenInfo.new(0.12),{Position=UDim2.new(0,st and 20 or 3,0.5,-5.5)}):Play()
+		T:Create(b,TweenInfo.new(0.12),{BackgroundColor3=st and cl.gr or Color3.fromRGB(55,55,65)}):Play()
+		cb(st)
 	end)
+	return function() return st end
 end
 
-local function addSlider(text, min, max, def, cb)
-	local f = Instance.new("Frame"); f.Size = UDim2.new(1, 0, 0, 46); f.BackgroundColor3 = C.card; f.Parent = scroll; corner(f, 6)
-	local lbl = Instance.new("TextLabel"); lbl.Size = UDim2.new(0.65, 0, 0, 18); lbl.Position = UDim2.fromOffset(10, 4)
-	lbl.BackgroundTransparency = 1; lbl.Text = text; lbl.TextColor3 = C.text; lbl.Font = Enum.Font.GothamMedium; lbl.TextSize = 12
-	lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = f
-	local vl = Instance.new("TextLabel"); vl.Size = UDim2.new(0.3, 0, 0, 18); vl.Position = UDim2.new(0.7, 0, 0, 4)
-	vl.BackgroundTransparency = 1; vl.Text = tostring(def); vl.TextColor3 = C.blue; vl.Font = Enum.Font.GothamBold; vl.TextSize = 12
-	vl.TextXAlignment = Enum.TextXAlignment.Right; vl.Parent = f
-	local tr = Instance.new("Frame"); tr.Size = UDim2.new(1, -20, 0, 5); tr.Position = UDim2.new(0, 10, 0, 28)
-	tr.BackgroundColor3 = Color3.fromRGB(50, 50, 60); tr.BorderSizePixel = 0; tr.Parent = f; corner(tr, 2.5)
-	local fl = Instance.new("Frame"); fl.Size = UDim2.fromScale((def - min) / (max - min), 1); fl.BackgroundColor3 = C.blue; fl.BorderSizePixel = 0; fl.Parent = tr; corner(fl, 2.5)
-	local th = Instance.new("TextButton"); th.Size = UDim2.fromOffset(14, 14); th.Position = UDim2.new((def - min) / (max - min), -7, 0.5, -7)
-	th.BackgroundColor3 = Color3.fromRGB(255, 255, 255); th.Text = ""; th.Parent = tr; corner(th, 7)
-	local drag = false
-	local function upd(inp)
+local function sl(t,mn,mx,df,cb)
+	local f = Instance.new("Frame",s); f.Size = UDim2.new(1,0,0,44); f.BackgroundColor3 = cl.cd; cr(f,5)
+	local l = Instance.new("TextLabel",f); l.Size = UDim2.new(0.65,0,0,16); l.Position = UDim2.fromOffset(8,3)
+	l.BackgroundTransparency = 1; l.Text = t; l.TextColor3 = cl.tx; l.Font = Enum.Font.GothamMedium; l.TextSize = 11; l.TextXAlignment = Enum.TextXAlignment.Left
+	local vl = Instance.new("TextLabel",f); vl.Size = UDim2.new(0.3,0,0,16); vl.Position = UDim2.new(0.7,0,0,3)
+	vl.BackgroundTransparency = 1; vl.Text = tostring(df); vl.TextColor3 = cl.bl; vl.Font = Enum.Font.GothamBold; vl.TextSize = 11; vl.TextXAlignment = Enum.TextXAlignment.Right
+	local tr = Instance.new("Frame",f); tr.Size = UDim2.new(1,-16,0,4); tr.Position = UDim2.new(0,8,0,26)
+	tr.BackgroundColor3 = Color3.fromRGB(50,50,60); tr.BorderSizePixel = 0; cr(tr,2)
+	local fl = Instance.new("Frame",tr); fl.Size = UDim2.fromScale((df-mn)/(mx-mn),1); fl.BackgroundColor3 = cl.bl; fl.BorderSizePixel = 0; cr(fl,2)
+	local th = Instance.new("TextButton",tr); th.Size = UDim2.fromOffset(12,12); th.Position = UDim2.new((df-mn)/(mx-mn),-6,0.5,-6)
+	th.BackgroundColor3 = Color3.fromRGB(255,255,255); th.Text = ""; cr(th,6)
+	local dr = false
+	local function up(inp)
 		local w = tr.AbsoluteSize.X; if w <= 0 then return end
-		local r = math.clamp((inp.Position.X - tr.AbsolutePosition.X) / w, 0, 1)
-		fl.Size = UDim2.fromScale(r, 1); th.Position = UDim2.new(r, -7, 0.5, -7)
-		local v = min + (max - min) * r; vl.Text = tostring(math.floor(v * 100) / 100); cb(v)
+		local r = math.clamp((inp.Position.X-tr.AbsolutePosition.X)/w,0,1)
+		fl.Size = UDim2.fromScale(r,1); th.Position = UDim2.new(r,-6,0.5,-6)
+		local v = mn+(mx-mn)*r; vl.Text = tostring(math.floor(v*100)/100); cb(v)
 	end
-	th.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drag = true end end)
-	UserInputService.InputChanged:Connect(function(i) if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then upd(i) end end)
-	UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drag = false end end)
+	th.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dr = true end end)
+	U.InputChanged:Connect(function(i) if dr and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then up(i) end end)
+	U.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dr = false end end)
 end
 
 -- Config
-local config = { enabled = false, size = 8, transparency = 0.5, noCollide = false, espNames = false, ignoreTeam = true }
-local selectedParts = {}
-for _, v in pairs({ "HumanoidRootPart", "Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg" }) do selectedParts[v] = true end
-
--- === HITBOX ENGINE ===
--- Try MT-Api first, fallback to direct property setting
-local mtApiMode = false
-
-local function tryLoadMTAPI()
-	local ok = false
-	pcall(function() if env.MTAPIMutex then ok = true end end)
-	if ok then return true end
-
-	local url = "https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua"
-	pcall(function()
-		local code = game:HttpGet(url, true)
-		loadstring(code)()
-	end)
-	pcall(function() if env.MTAPIMutex then ok = true end end)
-	if ok then return true end
-
-	pcall(function()
-		local code = game:HttpGetAsync(url)
-		loadstring(code)()
-	end)
-	pcall(function() if env.MTAPIMutex then ok = true end end)
-	if ok then return true end
-
-	return false
-end
-
-mtApiMode = tryLoadMTAPI()
+local cfg = {en=false,sz=8,tr=0.5,nc=false,es=false,ig=true}
+local sel = {}
+for _,n in pairs({"HumanoidRootPart","Head","Torso","Left Arm","Right Arm","Left Leg","Right Leg"}) do sel[n]=true end
 
 -- Player data
-local players = {}
-local espDrawings = {}
+local pd = {}
+local drw = {}
+local hb
 
-local function isTeammate(p, pc)
-	if not pc then return true end
+local function isTeam(p)
+	if not p.Character then return false end
 	if not lp.Character then return false end
 	return lp.Team == p.Team
 end
 
-local function isDead(pc)
-	if not pc then return true end
-	local hum = pc:FindFirstChildWhichIsA("Humanoid")
-	if hum then return hum.Health <= 0 end
-	return true
+local function sv(c)
+	if not c then return end
+	if not pd[c] then pd[c] = {} end
+	for _,p in pairs(c:GetChildren()) do
+		if p:IsA("BasePart") then
+			pd[c][p] = {Size=p.Size,T=p.Transparency,CC=p.CanCollide,ML=p.Massless}
+		end
+	end
 end
 
--- Direct property approach (fallback)
-local defaultProps = {}
-local function saveDefaults(char)
+local function rs(char)
+	if not char or not pd[char] then return end
+	for p,pr in pairs(pd[char]) do
+		if p and p.Parent then
+			p.Size=pr.Size;p.Transparency=pr.T;p.CanCollide=pr.CC;p.Massless=pr.ML
+		end
+	end
+end
+
+local function ex(char, plr)
 	if not char then return end
-	defaultProps[char] = {}
-	for _, part in pairs(char:GetChildren()) do
-		if part:IsA("BasePart") then
-			defaultProps[char][part] = { Size = part.Size, Transparency = part.Transparency, CanCollide = part.CanCollide, Massless = part.Massless }
+	if plr and cfg.ig and isTeam(plr) then rs(char); return end
+	for _,p in pairs(char:GetChildren()) do
+		if p:IsA("BasePart") and sel[p.Name] then
+			p.Size = Vector3.new(cfg.sz,cfg.sz,cfg.sz)
+			p.Transparency = cfg.tr
+			p.CanCollide = not cfg.nc
+			if p.Name ~= "HumanoidRootPart" then p.Massless = true end
 		end
 	end
 end
 
-local function resetParts(char)
-	if not char or not defaultProps[char] then return end
-	for part, props in pairs(defaultProps[char]) do
-		if part and part.Parent then
-			part.Size = props.Size; part.Transparency = props.Transparency; part.CanCollide = props.CanCollide; part.Massless = props.Massless
-		end
-	end
-end
-
-local function expandParts(char)
-	if not char then return end
-	local ignored = config.ignoreTeam and players[char] and players[char].ignored
-	if ignored then
-		resetParts(char)
-		return
-	end
-	for _, part in pairs(char:GetChildren()) do
-		if part:IsA("BasePart") and selectedParts[part.Name] then
-			local size = config.size
-			part.Size = Vector3.new(size, size, size)
-			part.Transparency = config.transparency
-			part.CanCollide = not config.noCollide
-			if part.Name ~= "HumanoidRootPart" then
-				part.Massless = true
-			end
-		end
-	end
-end
-
--- MT-Api approach
-local function hookPart(part, pData)
-	if not part:IsA("BasePart") then return end
-	local props = { Size = part.Size, Transparency = part.Transparency, Massless = part.Massless, CanCollide = part.CanCollide }
-	local ok = pcall(function()
-		local gs = part:AddGetHook("Size", props.Size)
-		local gt = part:AddGetHook("Transparency", props.Transparency)
-		local gm = part:AddGetHook("Massless", props.Massless)
-		local gc = part:AddGetHook("CanCollide", props.CanCollide)
-		local ss = part:AddSetHook("Size", function(_, v)
-			props.Size = v; gs:Modify("Size", props.Size)
-			if config.enabled and pData.alive and not pData.ignored and selectedParts[part.Name] then return Vector3.new(config.size, config.size, config.size) end
-			return props.Size
-		end)
-		local st = part:AddSetHook("Transparency", function(_, v)
-			props.Transparency = v; gt:Modify("Transparency", props.Transparency)
-			if config.enabled and pData.alive and not pData.ignored and selectedParts[part.Name] then return config.transparency end
-			return props.Transparency
-		end)
-		local sm = part:AddSetHook("Massless", function(_, v)
-			props.Massless = v; gm:Modify("Massless", props.Massless)
-			if config.enabled and part.Name ~= "HumanoidRootPart" and pData.alive and not pData.ignored and selectedParts[part.Name] then return true end
-			return props.Massless
-		end)
-		local sc = part:AddSetHook("CanCollide", function(_, v)
-			props.CanCollide = v; gc:Modify("CanCollide", props.CanCollide)
-			if config.enabled and config.noCollide and pData.alive and not pData.ignored and selectedParts[part.Name] then return false end
-			return props.CanCollide
-		end)
-		part.Destroying:Connect(function()
-			gs:Remove(); gt:Remove(); gm:Remove(); gc:Remove()
-			ss:Remove(); st:Remove(); sm:Remove(); sc:Remove()
-		end)
-	end)
-	if not ok then
-		mtApiMode = false
-	end
-end
-
-local function setupPlayer(p)
-	if p == lp or players[p] then return end
-	local pData = { alive = true, ignored = false }
-	players[p] = pData
-
-	local function onChar(char)
+local function ap(p)
+	if p == lp then return end
+	local pl = {al=true,ig=false,ch=nil}
+	pd[p] = pl
+	local function oc(char)
 		if not char then return end
-		pData.alive = true
-		local hum = char:FindFirstChildWhichIsA("Humanoid")
-		if hum then
-			hum.StateChanged:Connect(function(_, ns) pData.alive = ns ~= Enum.HumanoidStateType.Dead end)
-			hum.Died:Connect(function() pData.alive = false end)
+		pl.al = true; pl.ch = char
+		local h = char:FindFirstChildWhichIsA("Humanoid")
+		if h then
+			h.Died:Connect(function() pl.al = false end)
 		end
-		if mtApiMode then
-			for _, part in pairs(char:GetChildren()) do hookPart(part, pData) end
-			char.ChildAdded:Connect(function(child) waitFn() hookPart(child, pData) end)
-		else
-			saveDefaults(char)
-			expandParts(char)
-			char.ChildAdded:Connect(function(child) waitFn() if child:IsA("BasePart") then expandParts(char) end end)
-		end
+		sv(char)
+		if cfg.en then ex(char, p) end
+		char.ChildAdded:Connect(function(ch) wf() if ch:IsA("BasePart") and cfg.en then ex(char, p) end end)
 	end
-
-	if p.Character then onChar(p.Character) end
-	p.CharacterAdded:Connect(function(char) waitFn(0.5) onChar(char) end)
-	p.CharacterRemoving:Connect(function() pData.alive = false end)
-	p:GetPropertyChangedSignal("Team"):Connect(function()
-		pData.ignored = config.ignoreTeam and isTeammate(p, p.Character)
-	end)
-	if p.Character then
-		pData.ignored = config.ignoreTeam and isTeammate(p, p.Character)
-	end
+	if p.Character then oc(p.Character) end
+	p.CharacterAdded:Connect(function(char) wf(0.3) oc(char) end)
+	p.CharacterRemoving:Connect(function() pl.al = false end)
 end
+for _,p in pairs(P:GetPlayers()) do ap(p) end
+P.PlayerAdded:Connect(ap)
+P.PlayerRemoving:Connect(function(p) pd[p] = nil end)
 
-for _, p in pairs(Players:GetPlayers()) do setupPlayer(p) end
-Players.PlayerAdded:Connect(setupPlayer)
-Players.PlayerRemoving:Connect(function(p) players[p] = nil end)
-
--- Update all (for direct mode)
-local function updateAll()
-	if mtApiMode then return end
-	for p, pd in pairs(players) do
-		if p.Character then
-			if config.enabled and pd.alive and not pd.ignored then
-				expandParts(p.Character)
-			else
-				resetParts(p.Character)
-			end
+-- Heartbeat enforcement loop
+hb = R.Heartbeat:Connect(function()
+	if not cfg.en then return end
+	for p,pl in pairs(pd) do
+		if pl.al and p.Character and not (cfg.ig and isTeam(p)) then
+			ex(p.Character, p)
 		end
 	end
-end
+end)
 
 -- ESP
-RunService:BindToRenderStep("XiutESP", Enum.RenderPriority.Camera.Value - 1, function()
-	if not config.espNames then
-		for _, d in pairs(espDrawings) do d.Visible = false end
+R.RenderStepped:Connect(function()
+	if not cfg.es then
+		for _,d in pairs(drw) do d.Visible = false end
 		return
 	end
-	Camera = Workspace.CurrentCamera
-	if not Camera then return end
-	for p, pd in pairs(players) do
-		local char = p.Character
-		if not char or not pd.alive or pd.ignored then
-			if espDrawings[p] then espDrawings[p].Visible = false end
+	C = W.CurrentCamera
+	if not C then return end
+	for p,pl in pairs(pd) do
+		local ch = p.Character
+		if not ch or not pl.al or (cfg.ig and isTeam(p)) then
+			if drw[p] then drw[p].Visible = false end
 		else
-			local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-			if root then
-				if not espDrawings[p] then
-					local s, d = pcall(function()
-						local d = Drawing.new("Text"); d.Center = true; d.Outline = true; d.Size = 16; d.OutlineColor = Color3.fromRGB(0, 0, 0); return d
+			local rt = ch:FindFirstChild("HumanoidRootPart") or ch:FindFirstChild("Torso")
+			if rt then
+				if not drw[p] then
+					local s,d = pcall(function()
+						local d = Drawing.new("Text"); d.Center = true; d.Outline = true; d.Size = 14; d.OutlineColor = Color3.fromRGB(0,0,0); return d
 					end)
 					if not s then return end
-					espDrawings[p] = d
+					drw[p] = d
 				end
-				local pos, vis = Camera:WorldToViewportPoint(root.Position)
+				local pos, vis = C:WorldToViewportPoint(rt.Position)
 				if vis then
-					local dist = math.floor((Camera.CFrame.Position - root.Position).Magnitude)
-					espDrawings[p].Color = p.Team == lp.Team and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
-					espDrawings[p].Text = p.Name .. " [" .. dist .. "m]"
-					espDrawings[p].Position = Vector2.new(pos.X, pos.Y - 50)
-					espDrawings[p].Visible = true
+					local ds = math.floor((C.CFrame.Position-rt.Position).Magnitude)
+					drw[p].Color = p.Team == lp.Team and Color3.fromRGB(100,255,100) or Color3.fromRGB(255,100,100)
+					drw[p].Text = p.Name.." ["..ds.."m]"
+					drw[p].Position = Vector2.new(pos.X,pos.Y-45)
+					drw[p].Visible = true
 				else
-					espDrawings[p].Visible = false
+					drw[p].Visible = false
 				end
-			elseif espDrawings[p] then
-				espDrawings[p].Visible = false
+			elseif drw[p] then
+				drw[p].Visible = false
 			end
 		end
 	end
 end)
 
 -- Cleanup
-gui.Destroying:Connect(function()
-	for _, d in pairs(espDrawings) do pcall(function() d:Remove() end) end
-	if not mtApiMode then
-		for p, pd in pairs(players) do if p.Character then resetParts(p.Character) end end
-	end
-	env.XiutLoaded = nil
+g.Destroying:Connect(function()
+	hb:Disconnect()
+	for _,d in pairs(drw) do pcall(function() d:Remove() end) end
+	for p,pl in pairs(pd) do if p.Character then rs(p.Character) end end
+	e.x = nil
 end)
 
--- ===== UI BUILD =====
+-- Build UI
+lb("Hitbox")
+tg("Enabled",cfg.en,function(v) cfg.en=v if not cfg.en then for p,pl in pairs(pd) do if p.Character then rs(p.Character) end end end end)
+sl("Size",2,50,cfg.sz,function(v) cfg.sz=v end)
+sl("Transparency",0,1,cfg.tr,function(v) cfg.tr=v end)
+tg("No Collide",cfg.nc,function(v) cfg.nc=v end)
 
-addLbl("Hitbox Extender")
-addToggle("Enabled", config.enabled, function(v)
-	config.enabled = v
-	if not mtApiMode then updateAll() end
-end)
-addSlider("Size", 2, 50, config.size, function(v)
-	config.size = v
-	if config.enabled and not mtApiMode then updateAll() end
-end)
-addSlider("Transparency", 0, 1, config.transparency, function(v)
-	config.transparency = v
-	if config.enabled and not mtApiMode then updateAll() end
-end)
-addToggle("No Collision", config.noCollide, function(v)
-	config.noCollide = v
-	if config.enabled and not mtApiMode then updateAll() end
-end)
-
-addLbl("Body Parts")
-for _, name in pairs({ "HumanoidRootPart", "Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg" }) do
-	addToggle(name, selectedParts[name], function(v)
-		selectedParts[name] = v
-		if config.enabled and not mtApiMode then updateAll() end
-	end)
+lb("Parts")
+for _,n in pairs({"HumanoidRootPart","Head","Torso","Left Arm","Right Arm","Left Leg","Right Leg"}) do
+	tg(n,sel[n],function(v) sel[n]=v end)
 end
 
-addLbl("ESP")
-addToggle("Show Names", config.espNames, function(v) config.espNames = v end)
-addToggle("Ignore Team", config.ignoreTeam, function(v)
-	config.ignoreTeam = v
-	for p, pd in pairs(players) do
-		if p.Character then pd.ignored = config.ignoreTeam and isTeammate(p, p.Character) end
-	end
-	if not mtApiMode then updateAll() end
-end)
+lb("ESP")
+tg("Names",cfg.es,function(v) cfg.es=v end)
+tg("Ignore Team",cfg.ig,function(v) cfg.ig=v for p,pl in pairs(pd) do if p.Character then pl.ig=isTeam(p) end end end)
 
-addLbl("Info")
-local info = Instance.new("TextLabel")
-info.Size = UDim2.new(1, -10, 0, 60)
-info.BackgroundTransparency = 1
-info.Text = mtApiMode and "MT-Api: ATIVO\nXIUT Extender v3" or "MT-Api: FALHOU (modo direto)\nXIUT Extender v3"
-info.TextColor3 = C.muted
-info.Font = Enum.Font.GothamMedium
-info.TextSize = 11
-info.TextWrapped = true
-info.TextXAlignment = Enum.TextXAlignment.Left
-info.Parent = scroll
-
-print("[XIUT] Carregado! MT-Api:", mtApiMode)
+lb("Info")
+local i = Instance.new("TextLabel",s)
+i.Size = UDim2.new(1,-8,0,50)
+i.BackgroundTransparency = 1
+i.Text = "v3 | Direct | 0 HTTP"
+i.TextColor3 = cl.mt
+i.Font = Enum.Font.GothamMedium
+i.TextSize = 10
+i.TextWrapped = true
+i.TextXAlignment = Enum.TextXAlignment.Left
