@@ -14,7 +14,8 @@ local lp = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
 -- Polyfill waitFn for Xeno (uLua 5.1 may not have task library)
-local waitFn = (task and waitFn) or function(t) wait(t or 0.1) end
+local waitFn = task and task.wait
+if not waitFn then waitFn = wait end
 
 -- UI
 local parentGui = CoreGui
