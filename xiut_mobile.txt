@@ -13,6 +13,9 @@ local Workspace = game:GetService("Workspace")
 local lp = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
+-- Polyfill waitFn for Xeno (uLua 5.1 may not have task library)
+local waitFn = (task and waitFn) or function(t) wait(t or 0.1) end
+
 -- UI
 local parentGui = CoreGui
 pcall(function()
@@ -228,20 +231,21 @@ local function tryLoadMTAPI()
 	pcall(function() if env.MTAPIMutex then ok = true end end)
 	if ok then return true end
 
-	local urls = {
-		"https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua",
-		"https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua",
-	}
-	for _, url in pairs(urls) do
-		local s, e = pcall(function()
-			local code = game:HttpGet(url, true)
-			loadstring(code)()
-		end)
-		if s then
-			pcall(function() if env.MTAPIMutex then ok = true end end)
-			if ok then return true end
-		end
-	end
+	local url = "https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua"
+	pcall(function()
+		local code = game:HttpGet(url, true)
+		loadstring(code)()
+	end)
+	pcall(function() if env.MTAPIMutex then ok = true end end)
+	if ok then return true end
+
+	pcall(function()
+		local code = game:HttpGetAsync(url)
+		loadstring(code)()
+	end)
+	pcall(function() if env.MTAPIMutex then ok = true end end)
+	if ok then return true end
+
 	return false
 end
 
@@ -359,16 +363,16 @@ local function setupPlayer(p)
 		end
 		if mtApiMode then
 			for _, part in pairs(char:GetChildren()) do hookPart(part, pData) end
-			char.ChildAdded:Connect(function(child) task.wait() hookPart(child, pData) end)
+			char.ChildAdded:Connect(function(child) waitFn() hookPart(child, pData) end)
 		else
 			saveDefaults(char)
 			expandParts(char)
-			char.ChildAdded:Connect(function(child) task.wait() if child:IsA("BasePart") then expandParts(char) end end)
+			char.ChildAdded:Connect(function(child) waitFn() if child:IsA("BasePart") then expandParts(char) end end)
 		end
 	end
 
 	if p.Character then onChar(p.Character) end
-	p.CharacterAdded:Connect(function(char) task.wait(0.5) onChar(char) end)
+	p.CharacterAdded:Connect(function(char) waitFn(0.5) onChar(char) end)
 	p.CharacterRemoving:Connect(function() pData.alive = false end)
 	p:GetPropertyChangedSignal("Team"):Connect(function()
 		pData.ignored = config.ignoreTeam and isTeammate(p, p.Character)
