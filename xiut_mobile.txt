@@ -2,29 +2,11 @@ local e = getgenv and getgenv() or _G
 if e.xiut then return end
 e.xiut = true
 
--- polyfill for xeno pc
-local ts = (task and task.spawn) or (coroutine and coroutine.wrap) or function(f) return f() end
-local function spawnThread(f) ts(f) end
+-- polyfill for cross-executor compatibility
+if not math.clamp then math.clamp = function(v, l, u) return math.max(l, math.min(u, v)) end end
+if not spawn then spawn = (task and task.spawn) or function(f) return coroutine.wrap(f)() end end
 
 if not game:IsLoaded() then game.Loaded:Wait() end
-
--- visible error handler
-pcall(function()
-	local eg = Instance.new("ScreenGui")
-	eg.Name = "xiutLoader"
-	eg.ResetOnSpawn = true
-	eg.Parent = game:GetService("CoreGui")
-	local et = Instance.new("TextLabel", eg)
-	et.Size = UDim2.new(1, 0, 0, 30)
-	et.Position = UDim2.new(0, 0, 0, 0)
-	et.BackgroundColor3 = Color3.new(0, 0, 0)
-	et.BackgroundTransparency = 0.3
-	et.Text = "xiut: loading..."
-	et.TextColor3 = Color3.new(1, 1, 1)
-	et.TextSize = 14
-	et.Font = Enum.Font.GothamBold
-	eg.Parent = game:GetService("CoreGui")
-end)
 
 local P = game:GetService("Players")
 local R = game:GetService("RunService")
@@ -36,8 +18,6 @@ local C = W.CurrentCamera
 
 local wf = task and task.wait
 if not wf then wf = wait end
-
-xpcall(function()
 
 local g = (function()
 	local s = Instance.new("ScreenGui")
@@ -192,7 +172,7 @@ local function sl(t,mn,mx,df,cb)
 	local dr = false
 	local function up(inp)
 		local w = tr.AbsoluteSize.X; if w <= 0 then return end
-			local r = math.max(0, math.min(1, (inp.Position.X-tr.AbsolutePosition.X)/w))
+		local r = math.clamp((inp.Position.X-tr.AbsolutePosition.X)/w,0,1)
 		fl.Size = UDim2.fromScale(r,1); th.Position = UDim2.new(r,-6,0.5,-6)
 		local v = mn+(mx-mn)*r; vl.Text = tostring(math.floor(v*100)/100); cb(v)
 	end
@@ -270,7 +250,7 @@ local function ad()
 			rs(p.Character)
 		end
 	end
-	spawnThread(function() wf(cfg.adD) adActive = false end)
+	spawn(function() wf(cfg.adD) adActive = false end)
 end
 
 local function ap(p)
@@ -403,31 +383,3 @@ i.Font = Enum.Font.GothamMedium
 i.TextSize = 10
 i.TextWrapped = true
 i.TextXAlignment = Enum.TextXAlignment.Left
-
-pcall(function()
-	for _,v in pairs(game:GetService("CoreGui"):GetChildren()) do
-		if v.Name == "xiutLoader" then v:Destroy() end
-	end
-end)
-
-end, function(err)
-	pcall(function()
-		local eg = Instance.new("ScreenGui")
-		eg.Name = "xiutError"
-		eg.ResetOnSpawn = true
-		eg.Parent = game:GetService("CoreGui")
-		local et = Instance.new("TextLabel", eg)
-		et.Size = UDim2.new(1, 0, 0, 60)
-		et.Position = UDim2.new(0, 0, 0, 0)
-		et.BackgroundColor3 = Color3.new(0, 0, 0)
-		et.BackgroundTransparency = 0.3
-		et.Text = "xiut ERROR:\n" .. tostring(err)
-		et.TextColor3 = Color3.new(1, 0, 0)
-		et.TextSize = 14
-		et.Font = Enum.Font.GothamBold
-		et.TextWrapped = true
-		et.TextXAlignment = Enum.TextXAlignment.Left
-		et.TextYAlignment = Enum.TextYAlignment.Top
-		warn("xiut error:", err)
-	end)
-end)
