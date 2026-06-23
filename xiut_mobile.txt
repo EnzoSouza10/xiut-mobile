@@ -38,6 +38,7 @@ w.BackgroundColor3 = cl.bg
 w.BorderSizePixel = 0
 w.ClipsDescendants = true
 w.Parent = g
+w.Visible = false
 cr(w,8)
 
 local h = Instance.new("Frame")
@@ -87,15 +88,15 @@ ly.SortOrder = Enum.SortOrder.LayoutOrder
 ly:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() s.CanvasSize = UDim2.fromOffset(0,ly.AbsoluteContentSize.Y+8) end)
 
 local fb = Instance.new("TextButton",g)
-fb.Size = UDim2.fromOffset(42,42)
-fb.Position = UDim2.new(0.05,0,0.15,0)
+fb.Size = UDim2.fromOffset(44,44)
+fb.Position = UDim2.new(0.85,0,0.85,0)
 fb.BackgroundColor3 = Color3.fromRGB(22,22,28)
-fb.Text = ">"
+fb.Text = "<"
 fb.TextColor3 = cl.tx
 fb.Font = Enum.Font.GothamBold
-fb.TextSize = 14
-fb.Visible = false
-cr(fb,21)
+fb.TextSize = 16
+fb.Visible = true
+cr(fb,22)
 
 bx.MouseButton1Click:Connect(function() w.Visible = false; fb.Visible = true end)
 fb.MouseButton1Click:Connect(function() w.Visible = true; fb.Visible = false end)
@@ -177,7 +178,7 @@ local function sl(t,mn,mx,df,cb)
 end
 
 -- Config
-local cfg = {en=false,sz=8,tr=0.5,nc=false,es=false,ig=true}
+local cfg = {en=false,sz=8,tr=0.5,nc=false,es=false,ig=true,ad=true,adD=0.12}
 local sel = {}
 for _,n in pairs({"HumanoidRootPart","Head","Torso","Left Arm","Right Arm","Left Leg","Right Leg"}) do sel[n]=true end
 
@@ -186,6 +187,7 @@ local pd = {}
 local df = {}
 local drw = {}
 local hb
+local adActive = false
 
 local function isTeam(p)
 	if not p.Character then return false end
@@ -225,6 +227,17 @@ local function ex(char, plr)
 	end
 end
 
+local function ad()
+	if not cfg.ad or not cfg.en or adActive then return end
+	adActive = true
+	for p,pl in pairs(pd) do
+		if pl.al and p.Character and not (cfg.ig and isTeam(p)) then
+			rs(p.Character)
+		end
+	end
+	spawn(function() wf(cfg.adD) adActive = false end)
+end
+
 local function ap(p)
 	if p == lp then return end
 	local pl = {al=true,ig=false,ch=nil}
@@ -250,7 +263,7 @@ P.PlayerRemoving:Connect(function(p) pd[p] = nil end)
 
 -- Heartbeat enforcement loop
 hb = R.Heartbeat:Connect(function()
-	if not cfg.en then return end
+	if not cfg.en or adActive then return end
 	for p,pl in pairs(pd) do
 		if pl.al and p.Character and not (cfg.ig and isTeam(p)) then
 			ex(p.Character, p)
@@ -297,6 +310,26 @@ R.RenderStepped:Connect(function()
 	end
 end)
 
+-- Anti-detect triggers
+U.InputBegan:Connect(function(i)
+	if cfg.ad and cfg.en and (i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch) then
+		ad()
+	end
+end)
+lp.CharacterAdded:Connect(function(char)
+	wf(0.5)
+	local t = char:FindFirstChildWhichIsA("Tool")
+	if t then t.Activated:Connect(function() if cfg.ad and cfg.en then ad() end end) end
+	char.ChildAdded:Connect(function(c) wf() if c:IsA("Tool") then c.Activated:Connect(function() if cfg.ad and cfg.en then ad() end end) end end)
+end)
+if lp.Character then
+	for _,t in pairs(lp.Character:GetChildren()) do
+		if t:IsA("Tool") then
+			t.Activated:Connect(function() if cfg.ad and cfg.en then ad() end end)
+		end
+	end
+end
+
 -- Cleanup
 g.Destroying:Connect(function()
 	hb:Disconnect()
@@ -311,6 +344,7 @@ tg("Enabled",cfg.en,function(v) cfg.en=v if not cfg.en then for p,pl in pairs(pd
 sl("Size",2,50,cfg.sz,function(v) cfg.sz=v end)
 sl("Transparency",0,1,cfg.tr,function(v) cfg.tr=v end)
 tg("No Collide",cfg.nc,function(v) cfg.nc=v end)
+tg("Anti-Detect",cfg.ad,function(v) cfg.ad=v end)
 
 lb("Parts")
 for _,n in pairs({"HumanoidRootPart","Head","Torso","Left Arm","Right Arm","Left Leg","Right Leg"}) do
