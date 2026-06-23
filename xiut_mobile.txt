@@ -1,9 +1,115 @@
-﻿
-game.DescendantAdded:Connect(function(obj)
-    if obj:IsA("Script") and obj.Source:match("FurryHBELoaded") then
-        obj:Destroy()
+﻿-- Anti-detector de hitbox para proteção de danos
+local function DamageProtectionDetector()
+    local damageState = {
+        lastDamageTime = 0,
+        damageCount = 0,
+        protectionEnabled = false
+    }
+    
+    -- Proteção de danos baseada em tempo
+    local function protectDamageTiming()
+        -- Conecta evento de dano
+        game.Players.LocalPlayer.CharacterAdded:Connect(function(char)
+            -- Protege contra danos excessivos
+            local damageConnection = char.ChildAdded:Connect(function(child)
+                if child:IsA("Part") and child.Name:lower():find("damage") then
+                    damageState.damageCount += 1
+                    
+                    -- Restaura estado se for excessivo
+                    if damageState.damageCount > 3 then
+                        damageState.damageCount = 0
+                        damageState.lastDamageTime = tick()
+                    end
+                end
+            end)
+            
+            -- Limpa conexão ao remover personagem
+            char.ChildRemoved:Connect(function(child)
+                if child:IsA("Part") and child.Name:lower():find("damage") then
+                    damageState.damageCount -= 1
+                end
+            end)
+        end)
     end
-end)
+    
+    -- Proteção de hitbox durante combate
+    local function protectCombatHitbox()
+        local combatState = {
+            lastAttackTime = 0,
+            attackCooldown = 0.1
+        }
+        
+        -- Conecta evento de ataque
+        game.Players.LocalPlayer.CharacterAdded:Connect(function(char)
+            -- Protege contra ataques em sequência
+            local attackConnection = char.ChildAdded:Connect(function(child)
+                if child:IsA("Tool") and child:FindFirstChild("Handle") then
+                    -- Restaura hitbox durante ataque
+                    local handle = child:FindFirstChild("Handle")
+                    if handle then
+                        local originalSize = handle.Size
+                        
+                        -- Protege durante ataque
+                        local attackTimer = tick()
+                        while tick() - attackTimer < combatState.attackCooldown do
+                            handle.Size = originalSize
+                            wait(0.01)
+                        end
+                    end
+                end
+            end)
+        end)
+    end
+    
+    -- Proteção de alinhamento de hitbox
+    local function protectHitboxAlignment()
+        -- Alinha hitbox corretamente para evitar detecção
+        game.Players.LocalPlayer.CharacterAdded:Connect(function(char)
+            for _, part in pairs(char:GetChildren()) do
+                if part:IsA("BasePart") then
+                    -- Garante alinhamento correto
+                    part.Size = part.Size
+                end
+            end
+        end)
+    end
+    
+    -- Loop de proteção contínuo
+    local function protectionLoop()
+        while true do
+            wait(0.5)
+            
+            -- Reseta contagem de danos se for muito tempo
+            if damageState.damageCount > 0 and tick() - damageState.lastDamageTime > 2 then
+                damageState.damageCount = 0
+            end
+        end
+    end
+    
+    -- Inicializar proteção
+    protectDamageTiming()
+    protectCombatHitbox()
+    protectHitboxAlignment()
+    
+    -- Iniciar loop de proteção
+    spawn(protectionLoop)
+    
+    return {
+        GetDamageState = function()
+            return damageState
+        end
+    }
+end
+
+-- Inicializar proteção de danos
+local damageProtection = DamageProtectionDetector()
+
+-- Ativa o anti-detector
+ProtectHitboxModifications()
+
+if getgenv().FurryHBELoaded ~= nil then
+    return
+end
 
 if getgenv().FurryHBELoaded ~= nil then
 	return
