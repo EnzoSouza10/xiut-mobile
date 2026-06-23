@@ -1,3 +1,9 @@
+-- Wait for game to load
+if not game:IsLoaded() then
+	game.Loaded:Wait()
+end
+task.wait(0.5)
+
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -111,11 +117,13 @@ title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = topBar
 
 local titleGlow = Instance.new("UIGradient")
-titleGlow.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, theme.accent),
-	ColorSequenceKeypoint.new(1, theme.green)
-})
-titleGlow.Parent = title
+pcall(function()
+	titleGlow.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, theme.accent),
+		ColorSequenceKeypoint.new(1, theme.green)
+	})
+	titleGlow.Parent = title
+end)
 
 local closeBtn = Instance.new("TextButton")
 closeBtn.Name = "Close"
@@ -332,11 +340,13 @@ addCorner(floatBtn, 25)
 addStroke(floatBtn, theme.accent, 2)
 
 local floatGrad = Instance.new("UIGradient")
-floatGrad.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, theme.accent),
-	ColorSequenceKeypoint.new(1, theme.green)
-})
-floatGrad.Parent = floatBtn
+pcall(function()
+	floatGrad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, theme.accent),
+		ColorSequenceKeypoint.new(1, theme.green)
+	})
+	floatGrad.Parent = floatBtn
+end)
 
 closeBtn.MouseButton1Click:Connect(function()
 	mainFrame.Visible = false
@@ -549,47 +559,48 @@ local function updateESP()
 			if espNameObjects[p] then
 				espNameObjects[p].Visible = false
 			end
-			continue
-		end
-
-		if config.ignoreTeam and p.Team == localPlayer.Team then
+		elseif config.ignoreTeam and p.Team == localPlayer.Team then
 			if espNameObjects[p] then espNameObjects[p].Visible = false end
-			continue
-		end
-
-		local char = p.Character
-		if not char or not pData[p] or not pData[p].alive then
-			if espNameObjects[p] then espNameObjects[p].Visible = false end
-			continue
-		end
-
-		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-		if not root then
-			if espNameObjects[p] then espNameObjects[p].Visible = false end
-			continue
-		end
-
-		if not espNameObjects[p] then
-			local obj = Drawing.new("Text")
-			obj.Center = true
-			obj.Outline = true
-			obj.Size = 18
-			obj.Color = Color3.fromRGB(255, 255, 255)
-			obj.OutlineColor = Color3.fromRGB(0, 0, 0)
-			espNameObjects[p] = obj
-		end
-
-		local pos, vis = Camera:WorldToViewportPoint(root.Position)
-		if vis then
-			local dist = math.floor((Camera.CFrame.Position - root.Position).Magnitude)
-			local col = p.Team == localPlayer.Team and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
-			espNameObjects[p].Color = col
-			espNameObjects[p].Text = p.Name .. " [" .. dist .. "m]"
-			espNameObjects[p].Position = Vector2.new(pos.X, pos.Y - 55)
-			espNameObjects[p].Size = math.clamp(400 / math.max(pos.Z, 1), 10, 40)
-			espNameObjects[p].Visible = true
 		else
-			espNameObjects[p].Visible = false
+			local char = p.Character
+			if not char or not playerData[p] or not playerData[p].alive then
+				if espNameObjects[p] then espNameObjects[p].Visible = false end
+			else
+				local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+				if not root then
+					if espNameObjects[p] then espNameObjects[p].Visible = false end
+				else
+					if not espNameObjects[p] then
+						local success, obj = pcall(function()
+							local d = Drawing.new("Text")
+							d.Center = true
+							d.Outline = true
+							d.Size = 18
+							d.Color = Color3.fromRGB(255, 255, 255)
+							d.OutlineColor = Color3.fromRGB(0, 0, 0)
+							return d
+						end)
+						if success then
+							espNameObjects[p] = obj
+						else
+							return
+						end
+					end
+
+					local pos, vis = Camera:WorldToViewportPoint(root.Position)
+					if vis then
+						local dist = math.floor((Camera.CFrame.Position - root.Position).Magnitude)
+						local col = p.Team == localPlayer.Team and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+						espNameObjects[p].Color = col
+						espNameObjects[p].Text = p.Name .. " [" .. dist .. "m]"
+						espNameObjects[p].Position = Vector2.new(pos.X, pos.Y - 55)
+						espNameObjects[p].Size = math.clamp(400 / math.max(pos.Z, 1), 10, 40)
+						espNameObjects[p].Visible = true
+					else
+						espNameObjects[p].Visible = false
+					end
+				end
+			end
 		end
 	end
 end
