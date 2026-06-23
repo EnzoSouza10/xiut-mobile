@@ -214,11 +214,22 @@ local function rs(char)
 	end
 end
 
+local function isPartSelected(name)
+	if sel["HumanoidRootPart"] and name == "HumanoidRootPart" then return true end
+	if sel["Head"] and (name == "Head" or name:find("Head")) then return true end
+	if sel["Torso"] and (name:find("Torso") or name:find("Torso")) then return true end
+	if sel["Left Arm"] and name:find("Left") and (name:find("Arm") or name:find("Hand") or name:find("Forearm") or name:find("Shoulder")) then return true end
+	if sel["Right Arm"] and name:find("Right") and (name:find("Arm") or name:find("Hand") or name:find("Forearm") or name:find("Shoulder")) then return true end
+	if sel["Left Leg"] and name:find("Left") and (name:find("Leg") or name:find("Foot") or name:find("Thigh") or name:find("Calf")) then return true end
+	if sel["Right Leg"] and name:find("Right") and (name:find("Leg") or name:find("Foot") or name:find("Thigh") or name:find("Calf")) then return true end
+	return false
+end
+
 local function ex(char, plr)
 	if not char then return end
 	if plr and cfg.ig and isTeam(plr) then rs(char); return end
 	for _,p in pairs(char:GetChildren()) do
-		if p:IsA("BasePart") and sel[p.Name] then
+		if p:IsA("BasePart") and isPartSelected(p.Name) then
 			p.Size = Vector3.new(cfg.sz,cfg.sz,cfg.sz)
 			p.Transparency = cfg.tr
 			p.CanCollide = not cfg.nc
@@ -249,12 +260,15 @@ local function ap(p)
 		if h then
 			h.Died:Connect(function() pl.al = false end)
 		end
+		local root = char:WaitForChild("HumanoidRootPart", 5)
+		if not root then root = char:WaitForChild("Torso", 3) end
+		if not root then return end
 		sv(char)
 		if cfg.en then ex(char, p) end
 		char.ChildAdded:Connect(function(ch) wf() if ch:IsA("BasePart") and cfg.en then ex(char, p) end end)
 	end
 	if p.Character then oc(p.Character) end
-	p.CharacterAdded:Connect(function(char) wf(0.3) oc(char) end)
+	p.CharacterAdded:Connect(function(char) wf(0.5) oc(char) end)
 	p.CharacterRemoving:Connect(function() pl.al = false end)
 end
 for _,p in pairs(P:GetPlayers()) do ap(p) end
