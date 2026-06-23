@@ -1,28 +1,10 @@
 --[[
 ╔═══════════════════════════════════════════╗
 ║         XIT - Hitbox Extender             ║
-║         Créditos: iluminadomina           ║
+║         Creditos: iluminadomina           ║
 ║         v5 - Undetectable Edition         ║
 ╚═══════════════════════════════════════════╝
 ]]
-
-local rf = math.random
-local function rn()
-	local s = ""
-	for i = 1, rf(6, 12) do
-		s = s .. string.char(rf(65, 90))
-	end
-	return s
-end
-
-local function silentCall(fn, ...)
-	local ok, res = pcall(fn, ...)
-	return ok, res
-end
-
-local function jitter(t)
-	return t + (rf(-80, 80) / 1000)
-end
 
 if getgenv().XitLoaded ~= nil then return end
 getgenv().XitLoaded = false
@@ -53,14 +35,24 @@ local players = {}
 local entities = {}
 local teamModule = nil
 local adActive = false
-local frameSkip = 0
+
+-- silent wrapper
+local function sc(fn, ...)
+	local o, r = pcall(fn, ...)
+	return o, r
+end
+
+-- random name
+local function rn()
+	local s = ""
+	for i = 1, math.random(6, 12) do
+		s = s .. string.char(math.random(65, 90))
+	end
+	return s
+end
 
 local function updatePlayers()
 	if not getgenv().XitLoaded then return end
-	if getgenv().XitStealth then
-		frameSkip = frameSkip + 1
-		if frameSkip % rf(2, 4) ~= 0 then return end
-	end
 	if adActive then return end
 	for _, v in pairs(players) do
 		task.spawn(function()
@@ -69,7 +61,7 @@ local function updatePlayers()
 	end
 end
 
-RunService:BindToRenderStep(rn(), Enum.RenderPriority.Camera.Value - 1, function()
+RunService:BindToRenderStep("XitESP", Enum.RenderPriority.Camera.Value - 1, function()
 	if not getgenv().XitLoaded then return end
 	Camera = Workspace.CurrentCamera
 	for _, v in pairs(players) do
@@ -80,34 +72,30 @@ RunService:BindToRenderStep(rn(), Enum.RenderPriority.Camera.Value - 1, function
 end)
 
 local mainWindow = Library:CreateWindow("XIT - Hitbox Extender")
-mainWindow:SetVisible(false)
-
 local mainTab = mainWindow:AddTab("Main")
 local mainGroupbox = mainTab:AddLeftGroupbox("Hitbox Extender")
 local antiGroupbox = mainTab:AddRightGroupbox("Anti-Detection")
 local espGroupbox = mainTab:AddLeftGroupbox("ESP")
 local ignoresGroupbox = mainTab:AddRightGroupbox("Ignores")
 local miscGroupbox = mainTab:AddLeftGroupbox("Keybinds")
+local collisionsGroupbox = mainTab:AddRightGroupbox("Collisions")
 local emergencyTab = mainWindow:AddTab("Emergency")
 local emergencyGroupbox = emergencyTab:AddLeftGroupbox("Fixes")
 
--- extend controls
 mainGroupbox:AddToggle("extenderToggled", { Text = "Toggle" }):OnChanged(updatePlayers)
 mainGroupbox:AddSlider("extenderSize", { Text = "Size", Min = 2, Max = 100, Default = 10, Rounding = 1 }):OnChanged(updatePlayers)
 mainGroupbox:AddSlider("extenderTransparency", { Text = "Transparency", Min = 0, Max = 1, Default = 0.5, Rounding = 2 }):OnChanged(updatePlayers)
 mainGroupbox:AddInput("customPartName", { Text = "Custom Part Name", Default = "HeadHB" }):OnChanged(updatePlayers)
 mainGroupbox:AddDropdown("extenderPartList", { Text = "Body Parts", AllowNull = true, Multi = true, Values = { "Custom Part", "Head", "HumanoidRootPart", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg" }, Default = "HumanoidRootPart" }):OnChanged(updatePlayers)
 
--- anti detection controls
-antiGroupbox:AddToggle("antiDetectToggled", { Text = "Anti-Detect" }):AddToolTip("Reseta hitbox ao atirar para evitar deteccao")
+-- anti detection
+antiGroupbox:AddToggle("antiDetectToggled", { Text = "Anti-Detect" }):AddToolTip("Reseta hitbox ao atirar")
 Toggles.antiDetectToggled:OnChanged(updatePlayers)
-antiGroupbox:AddSlider("adDelay", { Text = "AD Delay (s)", Min = 0.02, Max = 0.5, Default = 0.12, Rounding = 3 }):OnChanged(updatePlayers)
-antiGroupbox:AddToggle("stealthModeToggled", { Text = "Stealth Mode" }):AddToolTip("Pula frames aleatorios para evitar padrao")
+antiGroupbox:AddSlider("adDelay", { Text = "AD Delay (s)", Min = 0.02, Max = 0.5, Default = 0.12, Rounding = 3, Suffix = "s" }):OnChanged(updatePlayers)
+antiGroupbox:AddToggle("stealthModeToggled", { Text = "Stealth Mode" }):AddToolTip("Pula frames aleatorios")
 Toggles.stealthModeToggled:OnChanged(updatePlayers)
-antiGroupbox:AddToggle("sizeJitterToggled", { Text = "Size Jitter" }):AddToolTip("Adiciona variacao aleatoria ao tamanho")
-Toggles.sizeJitterToggled:OnChanged(updatePlayers)
 
--- esp controls
+-- esp
 espGroupbox:AddToggle("espNameToggled", { Text = "Name" }):AddColorPicker("espNameColor1", { Title = "Fill Color", Default = Color3.fromRGB(255, 255, 255) }):AddColorPicker("espNameColor2", { Title = "Outline Color", Default = Color3.fromRGB(0, 0, 0) })
 Toggles.espNameToggled:OnChanged(updatePlayers)
 Options.espNameColor1:OnChanged(updatePlayers)
@@ -124,11 +112,10 @@ espGroupbox:AddSlider("espHighlightFillTransparency", { Text = "Chams Fill Trans
 espGroupbox:AddSlider("espHighlightOutlineTransparency", { Text = "Chams Outline Transparency", Min = 0, Max = 1, Default = 0, Rounding = 2 }):OnChanged(updatePlayers)
 
 -- keybinds
-miscGroupbox:AddLabel("Toggle UI"):AddKeyPicker("menuKeybind", { Default = "End", NoUI = true, Text = "Menu Keybind" })
+miscGroupbox:AddLabel("Toggle UI"):AddKeyPicker("menuKeybind", { Default = "End", NoUI = false, Text = "Menu Keybind" })
 miscGroupbox:AddLabel("Force Update"):AddKeyPicker("forceUpdateKeybind", { Default = "Home", NoUI = true, Text = "Force Update Keybind" })
 Options.forceUpdateKeybind:OnClick(updatePlayers)
 miscGroupbox:AddLabel("Panic Mode"):AddKeyPicker("panicKeybind", { Default = "F2", NoUI = true, Text = "Panic Keybind" })
-miscGroupbox:AddLabel("Toggle Button"):AddKeyPicker("toggleButtonKeybind", { Default = "F4", NoUI = true, Text = "Button Keybind" })
 Library.ToggleKeybind = Options.menuKeybind
 
 -- ignores
@@ -139,7 +126,8 @@ ignoresGroupbox:AddDropdown("ignorePlayerList", { Text = "Players", AllowNull = 
 ignoresGroupbox:AddToggle("ignoreOwnTeamToggled", { Text = "Ignore Own Team" }):OnChanged(updatePlayers)
 ignoresGroupbox:AddToggle("ignoreSelectedTeamsToggled", { Text = "Ignore Selected Teams" }):OnChanged(updatePlayers)
 ignoresGroupbox:AddDropdown("ignoreTeamList", { Text = "Teams", AllowNull = true, Multi = true, Values = {} }):OnChanged(updatePlayers)
-collisionsGroupbox = mainTab:AddRightGroupbox("Collisions")
+
+-- collisions
 collisionsGroupbox:AddToggle("collisionsToggled", { Text = "Enable Collisions" }):OnChanged(updatePlayers)
 
 SaveManager:BuildConfigSection(mainTab)
@@ -157,58 +145,12 @@ if game.GameId == 1934496708 then
 	teamModule = require(Workspace:WaitForChild("Teams"))
 end
 
--- PANIC MODE
-local function panic()
-	getgenv().XitLoaded = false
-	mainWindow:SetVisible(false)
-	for _, v in pairs(players) do
-		if v.Chams then
-			silentCall(function() v.Chams.Enabled = false end)
-		end
-		if v.NameEsp then
-			silentCall(function() v.NameEsp.Visible = false end)
-		end
-	end
-	for _, player in pairs(Players:GetPlayers()) do
-		if player ~= lPlayer and players[player] and players[player].Character then
-			local char = players[player].Character
-			for _, part in pairs(char:GetChildren()) do
-				if part:IsA("BasePart") and players[player].DefaultProperties and players[player].DefaultProperties[part.Name] then
-					local dp = players[player].DefaultProperties[part.Name]
-					silentCall(function() part.Size = dp.Size end)
-					silentCall(function() part.Transparency = dp.Transparency end)
-					silentCall(function() part.CanCollide = dp.CanCollide end)
-					silentCall(function() part.Massless = dp.Massless end)
-				end
-			end
-		end
-	end
-	task.spawn(function()
-		task.wait(60)
-		getgenv().XitLoaded = true
-		mainWindow:SetVisible(true)
-	end)
-end
-
--- panic keybind
-Options.panicKeybind:OnClick(panic)
-
--- floating button for mobile
-local g = nil
-silentCall(function()
-	g = Instance.new("ScreenGui")
-	g.Name = rn()
-	g.ResetOnSpawn = false
-	g.Parent = game:GetService("CoreGui")
-end)
-if not g then
-	silentCall(function()
-		g = Instance.new("ScreenGui")
-		g.Name = rn()
-		g.ResetOnSpawn = false
-		g.Parent = lPlayer:WaitForChild("PlayerGui")
-	end)
-end
+-- floating button (ScreenGui)
+local g = Instance.new("ScreenGui")
+g.Name = rn()
+g.ResetOnSpawn = false
+g.Parent = game:GetService("CoreGui")
+g.Enabled = true
 
 local fb = Instance.new("TextButton")
 fb.Size = UDim2.fromOffset(44, 44)
@@ -218,15 +160,27 @@ fb.Text = "X"
 fb.TextColor3 = Color3.fromRGB(225, 225, 230)
 fb.Font = Enum.Font.GothamBold
 fb.TextSize = 16
-fb.Visible = true
-fb.Parent = g
+fb.Visible = false
 fb.BackgroundTransparency = 0.15
-coroutine.wrap(function()
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, 22)
-	c.Parent = fb
-end)()
+fb.Parent = g
 
+local uc = Instance.new("UICorner")
+uc.CornerRadius = UDim.new(0, 22)
+uc.Parent = fb
+
+fc = Instance.new("Frame")
+fc.Size = UDim2.new(1, -4, 1, -4)
+fc.Position = UDim2.new(0, 2, 0, 2)
+fc.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+fc.BackgroundTransparency = 0.5
+fc.BorderSizePixel = 0
+fc.Parent = fb
+
+local uc2 = Instance.new("UICorner")
+uc2.CornerRadius = UDim.new(0, 20)
+uc2.Parent = fc
+
+-- drag for floating button
 local fbDrag, fbStart, fbPos
 fb.InputBegan:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
@@ -252,12 +206,50 @@ fb.MouseButton1Click:Connect(function()
 	fb.Visible = false
 end)
 
--- toggle button keybind
-Options.toggleButtonKeybind:OnClick(function()
-	fb.Visible = not fb.Visible
+-- watch for library toggle to show/hide floating button
+spawn(function()
+	while wait(0.5) do
+		if not mainWindow:GetVisible() and not fb.Visible then
+			fb.Visible = true
+		end
+		if mainWindow:GetVisible() then
+			fb.Visible = false
+		end
+	end
 end)
 
--- hide library notifications (use custom ones if needed)
+-- PANIC MODE
+local function panic()
+	getgenv().XitLoaded = false
+	mainWindow:SetVisible(false)
+	fb.Visible = false
+	g.Enabled = false
+	for _, v in pairs(players) do
+		if v.Chams then sc(function() v.Chams.Enabled = false end) end
+	end
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= lPlayer and players[player] and players[player].Character then
+			local char = players[player].Character
+			for _, part in pairs(char:GetChildren()) do
+				if part:IsA("BasePart") and players[player].DefaultProperties and players[player].DefaultProperties[part.Name] then
+					local dp = players[player].DefaultProperties[part.Name]
+					sc(function() part.Size = dp.Size end)
+					sc(function() part.Transparency = dp.Transparency end)
+					sc(function() part.CanCollide = dp.CanCollide end)
+					sc(function() part.Massless = dp.Massless end)
+				end
+			end
+		end
+	end
+	task.spawn(function()
+		task.wait(60)
+		getgenv().XitLoaded = true
+		g.Enabled = true
+	end)
+end
+
+Options.panicKeybind:OnClick(panic)
+
 -- anti-detect: reset on weapon fire
 local function onWeaponFire()
 	if not getgenv().XitLoaded or not Toggles.antiDetectToggled.Value or adActive then return end
@@ -269,23 +261,22 @@ local function onWeaponFire()
 				for _, part in pairs(v.Character:GetChildren()) do
 					if part:IsA("BasePart") and v.DefaultProperties and v.DefaultProperties[part.Name] then
 						local dp = v.DefaultProperties[part.Name]
-						silentCall(function() part.Size = dp.Size end)
-						silentCall(function() part.Transparency = dp.Transparency end)
-						silentCall(function() part.CanCollide = dp.CanCollide end)
-						silentCall(function() part.Massless = dp.Massless end)
+						sc(function() part.Size = dp.Size end)
+						sc(function() part.Transparency = dp.Transparency end)
+						sc(function() part.CanCollide = dp.CanCollide end)
+						sc(function() part.Massless = dp.Massless end)
 					end
 				end
 			end
 		end)
 	end
 	task.spawn(function()
-		task.wait(Options.adDelay.Value)
+		task.wait(Options.adDelay.Value or 0.12)
 		updatePlayers()
 		adActive = false
 	end)
 end
 
--- detect weapon fire (PC + Mobile)
 UserInputService.InputBegan:Connect(function(i, gpe)
 	if gpe then return end
 	if Toggles.antiDetectToggled.Value and (i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch) then
@@ -293,24 +284,24 @@ UserInputService.InputBegan:Connect(function(i, gpe)
 	end
 end)
 
--- detect tool activation
 lPlayer.CharacterAdded:Connect(function(char)
-	task.wait(0.5)
-	for _, tool in pairs(char:GetChildren()) do
-		if tool:IsA("Tool") then
-			tool.Activated:Connect(onWeaponFire)
+	task.spawn(function()
+		task.wait(0.5)
+		for _, tool in pairs(char:GetChildren()) do
+			if tool:IsA("Tool") then
+				tool.Activated:Connect(onWeaponFire)
+			end
 		end
-	end
-	char.ChildAdded:Connect(function(c)
-		task.wait(0.05)
-		if c:IsA("Tool") then
-			c.Activated:Connect(onWeaponFire)
-		end
+		char.ChildAdded:Connect(function(c)
+			task.spawn(function()
+				task.wait(0.05)
+				if c:IsA("Tool") then
+					c.Activated:Connect(onWeaponFire)
+				end
+			end)
+		end)
 	end)
 end)
-
-local function addEntity(entity)
-end
 
 local function addPlayer(player)
 	table.insert(Options.ignorePlayerList.Values, player.Name)
@@ -344,41 +335,17 @@ local function addPlayer(player)
 			local playerTeamName = player.Team.Name
 			local selfTeam
 			local playerTeam
-			if lPlayerTeamName == "Class-D Personnel" or lPlayerTeamName == "Chaos Insurgency" then
-				selfTeam = "Chads"
-			end
-			if lPlayerTeamName == "Facility Personnel" or lPlayerTeamName == "Security Department" or lPlayerTeamName == "Mobile Task Force" then
-				selfTeam = "Crayon Eaters"
-			end
-			if lPlayerTeamName == "SCPs" or lPlayerTeamName == "Serpent's Hand" then
-				selfTeam = "Menaces to Society"
-			end
-			if lPlayerTeamName == "Global Occult Coalition" then
-				selfTeam = "Who?"
-			end
-			if lPlayerTeamName == "Unusual Incidents Unit" then
-				selfTeam = "Who2?"
-			end
-			if playerTeamName == "Class-D Personnel" or playerTeamName == "Chaos Insurgency" then
-				playerTeam = "Chads"
-			end
-			if playerTeamName == "Facility Personnel" or playerTeamName == "Security Department" or playerTeamName == "Mobile Task Force" then
-				playerTeam = "Crayon Eaters"
-			end
-			if playerTeamName == "SCPs" or playerTeamName == "Serpent's Hand" then
-				playerTeam = "Menaces to Society"
-			end
-			if playerTeamName == "Global Occult Coalition" then
-				playerTeam = "Who?"
-			end
-			if playerTeamName == "Unusual Incidents Unit" then
-				playerTeam = "Who2?"
-			end
-			if selfTeam == "Who2?" or playerTeam == "Who2?" then
-				if selfTeam == "Crayon Eaters" or playerTeam == "Crayon Eaters" or selfTeam == "Who?" or playerTeam == "Who?" then
-					return true
-				end
-			end
+			if lPlayerTeamName == "Class-D Personnel" or lPlayerTeamName == "Chaos Insurgency" then selfTeam = "Chads" end
+			if lPlayerTeamName == "Facility Personnel" or lPlayerTeamName == "Security Department" or lPlayerTeamName == "Mobile Task Force" then selfTeam = "Crayon Eaters" end
+			if lPlayerTeamName == "SCPs" or lPlayerTeamName == "Serpent's Hand" then selfTeam = "Menaces to Society" end
+			if lPlayerTeamName == "Global Occult Coalition" then selfTeam = "Who?" end
+			if lPlayerTeamName == "Unusual Incidents Unit" then selfTeam = "Who2?" end
+			if playerTeamName == "Class-D Personnel" or playerTeamName == "Chaos Insurgency" then playerTeam = "Chads" end
+			if playerTeamName == "Facility Personnel" or playerTeamName == "Security Department" or playerTeamName == "Mobile Task Force" then playerTeam = "Crayon Eaters" end
+			if playerTeamName == "SCPs" or playerTeamName == "Serpent's Hand" then playerTeam = "Menaces to Society" end
+			if playerTeamName == "Global Occult Coalition" then playerTeam = "Who?" end
+			if playerTeamName == "Unusual Incidents Unit" then playerTeam = "Who2?" end
+			if (selfTeam == "Who2?" or playerTeam == "Who2?") and (selfTeam == "Crayon Eaters" or playerTeam == "Crayon Eaters" or selfTeam == "Who?" or playerTeam == "Who?") then return true end
 			return selfTeam == playerTeam
 		elseif game.PlaceId == 8770868695 then
 			if not lPlayer.Character or not playerChar or not player.Team or player.Team.Name == "Dead" or player.Team.Name == "Inactive" then return true end
@@ -402,11 +369,8 @@ local function addPlayer(player)
 	local function isDead()
 		if not playerChar then return true end
 		local humanoid = playerChar:FindFirstChildWhichIsA("Humanoid")
-		if game.PlaceId == 6172932937 then
-			return player.ragdolled.Value
-		elseif game.GameId == 718936923 then
-			return playerChar:FindFirstChild("Dead") ~= nil
-		end
+		if game.PlaceId == 6172932937 then return player.ragdolled.Value end
+		if game.GameId == 718936923 then return playerChar:FindFirstChild("Dead") ~= nil end
 		return humanoid and humanoid:GetState() == Enum.HumanoidStateType.Dead
 	end
 
@@ -440,43 +404,33 @@ local function addPlayer(player)
 		properties.Massless = part.Massless
 		properties.CanCollide = part.CanCollide
 		properties.CollisionGroupId = part.CollisionGroupId
-		local getSizeHook = part:AddGetHook("Size", properties.Size)
-		local getTransparencyHook = part:AddGetHook("Transparency", properties.Transparency)
-		local getMasslessHook = part:AddGetHook("Massless", properties.Massless)
-		local getCanCollideHook = part:AddGetHook("CanCollide", properties.CanCollide)
-		local setSizeHook = part:AddSetHook("Size", function(_, value)
+		part:AddGetHook("Size", properties.Size)
+		part:AddGetHook("Transparency", properties.Transparency)
+		part:AddGetHook("Massless", properties.Massless)
+		part:AddGetHook("CanCollide", properties.CanCollide)
+		part:AddSetHook("Size", function(_, value)
 			properties.Size = value
-			getSizeHook:Modify("Size", properties.Size)
 			if Toggles.extenderToggled.Value then
-				local sz = Options.extenderSize.Value
-				if Toggles.sizeJitterToggled.Value then
-					sz = sz + (rf(-5, 5) / 100)
-				end
-				return Vector3.new(sz, sz, sz)
+				return Vector3.new(Options.extenderSize.Value, Options.extenderSize.Value, Options.extenderSize.Value)
 			end
 			return properties.Size
 		end)
-		local setTransparencyHook = part:AddSetHook("Transparency", function(_, value)
+		part:AddSetHook("Transparency", function(_, value)
 			properties.Transparency = value
-			getTransparencyHook:Modify("Transparency", properties.Transparency)
 			if Toggles.extenderToggled.Value then
 				return Options.extenderTransparency.Value
 			end
 			return properties.Transparency
 		end)
-		local setMasslessHook = part:AddSetHook("Massless", function(_, value)
+		part:AddSetHook("Massless", function(_, value)
 			properties.Massless = value
-			getMasslessHook:Modify("Massless", properties.Massless)
-			if Toggles.extenderToggled.Value then
-				if part.Name ~= "HumanoidRootPart" then
-					return true
-				end
+			if Toggles.extenderToggled.Value and part.Name ~= "HumanoidRootPart" then
+				return true
 			end
 			return properties.Massless
 		end)
-		local setCanCollideHook = part:AddSetHook("CanCollide", function(_, value)
+		part:AddSetHook("CanCollide", function(_, value)
 			properties.CanCollide = value
-			getCanCollideHook:Modify("CanCollide", properties.CanCollide)
 			if Toggles.extenderToggled.Value and not Toggles.collisionsToggled.Value then
 				if part.Name == "Head" or part.Name == "HumanoidRootPart" then
 					return false
@@ -486,22 +440,12 @@ local function addPlayer(player)
 		end)
 		local changed = part.Changed:Connect(function(property)
 			if debounce then return end
-			if properties[property] then
-				if properties[property] ~= part[property] then
-					properties[property] = part[property]
-				end
+			if properties[property] and properties[property] ~= part[property] then
+				properties[property] = part[property]
 				playerIdx:Update()
 			end
 		end)
 		part.Destroying:Connect(function()
-			getSizeHook:Remove()
-			getTransparencyHook:Remove()
-			getMasslessHook:Remove()
-			getCanCollideHook:Remove()
-			setSizeHook:Remove()
-			setTransparencyHook:Remove()
-			setMasslessHook:Remove()
-			setCanCollideHook:Remove()
 			changed:Disconnect()
 		end)
 	end
@@ -533,11 +477,7 @@ local function addPlayer(player)
 			else
 				part.CanCollide = defaultProperties[part.Name].CanCollide
 			end
-			local sz = Options.extenderSize.Value
-			if Toggles.sizeJitterToggled.Value then
-				sz = sz + (rf(-5, 5) / 100)
-			end
-			part.Size = Vector3.new(sz, sz, sz)
+			part.Size = Vector3.new(Options.extenderSize.Value, Options.extenderSize.Value, Options.extenderSize.Value)
 			part.Transparency = Options.extenderTransparency.Value
 			if part.Name == "Head" then
 				local face = part:FindFirstChild("face")
@@ -570,21 +510,11 @@ local function addPlayer(player)
 		debounce = false
 	end
 
-	-- esp
-	local function FindFirstChildMatching(parent, name)
-		if not parent then return nil end
-		for _, v in pairs(parent:GetChildren()) do
-			if string.match(v.Name, name) then
-				return v
-			end
-		end
-	end
-
+	-- esp (like original exemplo: shared drawing + highlight)
 	playerIdx.NameEsp = Drawing.new("Text")
 	playerIdx.NameEsp.Center = true
 	playerIdx.NameEsp.Outline = true
 	playerIdx.Chams = Instance.new("Highlight")
-	playerIdx.Chams.Name = rn()
 	playerIdx.Chams.Parent = g
 
 	function playerIdx:UpdateESP()
@@ -594,22 +524,14 @@ local function addPlayer(player)
 			return
 		end
 		if Toggles.espNameToggled.Value then
-			local target = FindFirstChildMatching(playerChar, "Torso")
+			local target = playerChar:FindFirstChild("HumanoidRootPart") or playerChar:FindFirstChild("Torso")
 			if target then
 				local pos, vis = WorldToViewportPoint(Camera, target.Position)
 				if vis then
-					if Options.espNameType.Value == "Display Name" then
-						playerIdx.NameEsp.Text = player.DisplayName
-					else
-						playerIdx.NameEsp.Text = player.Name
-					end
-					if Toggles.espNameUseTeamColor.Value then
-						playerIdx.NameEsp.Color = player.TeamColor.Color
-					else
-						playerIdx.NameEsp.Color = Options.espNameColor1.Value
-					end
+					playerIdx.NameEsp.Text = Options.espNameType.Value == "Display Name" and player.DisplayName or player.Name
+					playerIdx.NameEsp.Color = Toggles.espNameUseTeamColor.Value and player.TeamColor.Color or Options.espNameColor1.Value
 					playerIdx.NameEsp.OutlineColor = Options.espNameColor2.Value
-					playerIdx.NameEsp.Position = Vector2.new(pos.X, pos.Y)
+					playerIdx.NameEsp.Position = Vector2.new(pos.X, pos.Y - 40)
 					playerIdx.NameEsp.Size = 1000 / pos.Z + 10
 					playerIdx.NameEsp.Visible = true
 				else
@@ -623,21 +545,12 @@ local function addPlayer(player)
 		end
 		if Toggles.espHighlightToggled.Value then
 			playerIdx.Chams.Adornee = playerChar
-			if Toggles.espHighlightToggled.Value then
-				if Toggles.espHighlightUseTeamColor.Value then
-					playerIdx.Chams.FillColor = player.TeamColor.Color
-					playerIdx.Chams.OutlineColor = player.TeamColor.Color
-				else
-					playerIdx.Chams.FillColor = Options.espHighlightColor1.Value
-					playerIdx.Chams.OutlineColor = Options.espHighlightColor2.Value
-				end
-				playerIdx.Chams.DepthMode = Enum.HighlightDepthMode[Options.espHighlightDepthMode.Value]
-				playerIdx.Chams.FillTransparency = Options.espHighlightFillTransparency.Value
-				playerIdx.Chams.OutlineTransparency = Options.espHighlightOutlineTransparency.Value
-				playerIdx.Chams.Enabled = true
-			else
-				playerIdx.Chams.Enabled = false
-			end
+			playerIdx.Chams.FillColor = Toggles.espHighlightUseTeamColor.Value and player.TeamColor.Color or Options.espHighlightColor1.Value
+			playerIdx.Chams.OutlineColor = Toggles.espHighlightUseTeamColor.Value and player.TeamColor.Color or Options.espHighlightColor2.Value
+			playerIdx.Chams.DepthMode = Enum.HighlightDepthMode[Options.espHighlightDepthMode.Value]
+			playerIdx.Chams.FillTransparency = Options.espHighlightFillTransparency.Value
+			playerIdx.Chams.OutlineTransparency = Options.espHighlightOutlineTransparency.Value
+			playerIdx.Chams.Enabled = true
 		else
 			playerIdx.Chams.Enabled = false
 		end
@@ -653,14 +566,11 @@ local function addPlayer(player)
 		local humanoid = char:FindFirstChildWhichIsA("Humanoid")
 		if not humanoid then
 			repeat
-				if char == nil then
-					return false
-				end
+				if char == nil then return false end
 				humanoid = char:FindFirstChildWhichIsA("Humanoid")
 				task.wait()
 			until humanoid or tick() - startTime >= 2
 		end
-		local loaded = false
 		startTime = tick()
 		repeat
 			local limbs = 0
@@ -669,11 +579,9 @@ local function addPlayer(player)
 					limbs = limbs + 1
 				end
 			end
-			if limbs == 6 or limbs == 15 then
-				loaded = true
-			end
+			if limbs == 6 or limbs == 15 then break end
 			task.wait()
-		until loaded or tick() - startTime >= 3
+		until tick() - startTime >= 3
 		return true
 	end
 
@@ -685,84 +593,53 @@ local function addPlayer(player)
 			local humanoid = character:FindFirstChildWhichIsA("Humanoid")
 			if humanoid then
 				humanoid:GetPropertyChangedSignal("Health"):Connect(function()
-					if humanoid.Health <= 0 then
-						playerIdx:Update()
-					end
+					if humanoid.Health <= 0 then playerIdx:Update() end
 				end)
 				humanoid.StateChanged:Connect(function(_, newState)
-					if newState == Enum.HumanoidStateType.Dead then
-						playerIdx:Update()
-					end
+					if newState == Enum.HumanoidStateType.Dead then playerIdx:Update() end
 				end)
 			end
-			if character:FindFirstChildWhichIsA("ForceField") then
-				playerIdx:Update()
-			end
+			if character:FindFirstChildWhichIsA("ForceField") then playerIdx:Update() end
 			character.ChildAdded:Connect(function(child)
-				if game.GameId == 718936923 then
-					if child.Name == "Dead" then
-						playerIdx:Update()
-						return
-					end
-				end
-				if child:IsA("ForceField") then
-					playerIdx:Update()
-				end
+				if game.GameId == 718936923 and child.Name == "Dead" then playerIdx:Update(); return end
+				if child:IsA("ForceField") then playerIdx:Update() end
 			end)
 			character.ChildRemoved:Connect(function(child)
-				if child:IsA("ForceField") then
-					playerIdx:Update()
-				end
+				if child:IsA("ForceField") then playerIdx:Update() end
 			end)
 			if game.PlaceId == 4991214437 or game.PlaceId == 6652350934 then
 				local head = playerChar:FindFirstChild("Head")
-				head:GetPropertyChangedSignal("Material"):Connect(function()
-					playerIdx:Update()
-				end)
+				if head then head:GetPropertyChangedSignal("Material"):Connect(function() playerIdx:Update() end) end
 			end
 		end
 	end)
 	player.CharacterRemoving:Connect(function()
-		if playerIdx then
-			defaultProperties = {}
-		end
+		if playerIdx then defaultProperties = {} end
 	end)
-	player:GetPropertyChangedSignal("Team"):Connect(function(team)
+	player:GetPropertyChangedSignal("Team"):Connect(function()
 		playerIdx:Update()
 	end)
 	if game.PlaceId == 6172932937 then
 		local ragdolled = player:WaitForChild("ragdolled")
-		ragdolled.Changed:Connect(function()
-			playerIdx:Update()
-		end)
+		ragdolled.Changed:Connect(function() playerIdx:Update() end)
 	end
 	if game.GameId == 1934496708 then
 		local ff = Workspace:WaitForChild("FriendlyFire")
-		ff.Changed:Connect(function()
-			playerIdx:Update()
-		end)
+		ff.Changed:Connect(function() playerIdx:Update() end)
 	end
 	if game.GameId == 2162282815 then
 		local mapFolder = Workspace:WaitForChild("MapFolder")
 		local gamePlayers = mapFolder:WaitForChild("Players")
 		for _, v in pairs(gamePlayers:GetChildren()) do
-			if v.Name == player.Name then
-				playerChar = v
-			end
+			if v.Name == player.Name then playerChar = v end
 		end
 		gamePlayers.ChildAdded:Connect(function(v)
-			if v.Name == player.Name then
-				playerChar = v
-			end
+			if v.Name == player.Name then playerChar = v end
 		end)
 	end
-	if game.PlaceId == 4991214437 or game.PlaceId == 6652350934 then
-		if playerChar then
-			local head = playerChar:FindFirstChild("Head")
-			head:GetPropertyChangedSignal("Material"):Connect(function()
-				playerIdx:Update()
-			end)
-		end
+	if game.PlaceId == 4991214437 or game.PlaceId == 6652350934 and playerChar then
+		local head = playerChar:FindFirstChild("Head")
+		if head then head:GetPropertyChangedSignal("Material"):Connect(function() playerIdx:Update() end) end
 	end
 end
 
@@ -775,9 +652,7 @@ local function removePlayer(player)
 end
 
 for _, player in ipairs(Players:GetPlayers()) do
-	if player == lPlayer then
-		continue
-	end
+	if player == lPlayer then continue end
 	addPlayer(player)
 end
 for _, team in pairs(Teams:GetTeams()) do
@@ -786,12 +661,8 @@ for _, team in pairs(Teams:GetTeams()) do
 		updateList(Options.ignoreTeamList)
 	end
 end
-Players.PlayerAdded:Connect(function(player)
-	addPlayer(player)
-end)
-Players.PlayerRemoving:Connect(function(player)
-	removePlayer(player)
-end)
+Players.PlayerAdded:Connect(function(player) addPlayer(player) end)
+Players.PlayerRemoving:Connect(function(player) removePlayer(player) end)
 Teams.ChildAdded:Connect(function(team)
 	if team:IsA("Team") then
 		table.insert(Options.ignoreTeamList.Values, team.Name)
@@ -805,12 +676,8 @@ Teams.ChildRemoved:Connect(function(team)
 	end
 end)
 
-lPlayer:GetAttributeChangedSignal("Team"):Connect(function()
-	updatePlayers()
-end)
-lPlayer.CharacterAdded:Connect(function()
-	updatePlayers()
-end)
+lPlayer:GetAttributeChangedSignal("Team"):Connect(function() updatePlayers() end)
+lPlayer.CharacterAdded:Connect(function() updatePlayers() end)
 
 emergencyGroupbox:AddButton("Fix Missing Players", function()
 	local found = 0
@@ -820,25 +687,20 @@ emergencyGroupbox:AddButton("Fix Missing Players", function()
 			addPlayer(player)
 		end
 	end
-	if found > 0 then
-		Library:Notify("Found " .. found .. " players")
-	else
-		Library:Notify("No missing players found")
-	end
+	Library:Notify(found > 0 and "Found " .. found .. " players" or "No missing players found")
 	updatePlayers()
 end):AddToolTip("Attempts to find players that were not detected by the hbe (somehow)")
 
--- Critical Strike Anticheat Disabler
 if game.PlaceId == 111311599 then
 	local anticheat = game:GetService("ReplicatedFirst")["Serverbased AntiCheat"]
 	local sValue = lPlayer:WaitForChild("SValue")
-	local function constructAnticheatString()
+	local function gen()
 		return "CS-" .. math.random(11111, 99999) .. "-" .. math.random(1111, 9999) .. "-" .. math.random(111111, 999999) .. math.random(1111111, 9999999) .. (sValue.Value * 6) ^ 2 + 18
 	end
 	task.spawn(function()
 		while true do
-			task.wait(jitter(2))
-			game:GetService("ReplicatedStorage").ACDetect:FireServer(sValue.Value, constructAnticheatString())
+			task.wait(2 + (math.random(-200, 200) / 1000))
+			game:GetService("ReplicatedStorage").ACDetect:FireServer(sValue.Value, gen())
 		end
 	end)
 	anticheat.Disabled = true
