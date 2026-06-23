@@ -48,8 +48,7 @@ h.BorderSizePixel = 0
 h.Parent = w
 cr(h,8)
 
-Instance.new("Frame",h).Size = UDim2.new(1,0,0,6)
-Instance.new("Frame",h).Position = UDim2.new(0,0,1,-6)
+local bc = Instance.new("Frame",h); bc.Size = UDim2.new(1,0,0,6); bc.Position = UDim2.new(0,0,1,-6); bc.BackgroundColor3 = Color3.fromRGB(22,22,28); bc.BorderSizePixel = 0
 
 local tl = Instance.new("TextLabel",h)
 tl.Size = UDim2.new(0.6,0,1,0)
@@ -138,8 +137,8 @@ end
 
 local function tg(t,df,cb)
 	local f = Instance.new("Frame",s); f.Size = UDim2.new(1,0,0,34); f.BackgroundColor3 = cl.cd; cr(f,5)
-	Instance.new("TextLabel",f).Size = UDim2.new(0.7,0,1,0); Instance.new("TextLabel",f).Position = UDim2.fromOffset(8,0); Instance.new("TextLabel",f).BackgroundTransparency = 1
-	Instance.new("TextLabel",f).Text = t; Instance.new("TextLabel",f).TextColor3 = cl.tx; Instance.new("TextLabel",f).Font = Enum.Font.GothamMedium; Instance.new("TextLabel",f).TextSize = 11; Instance.new("TextLabel",f).TextXAlignment = Enum.TextXAlignment.Left
+	local l = Instance.new("TextLabel",f); l.Size = UDim2.new(0.7,0,1,0); l.Position = UDim2.fromOffset(8,0); l.BackgroundTransparency = 1
+	l.Text = t; l.TextColor3 = cl.tx; l.Font = Enum.Font.GothamMedium; l.TextSize = 11; l.TextXAlignment = Enum.TextXAlignment.Left
 	local b = Instance.new("TextButton",f); b.Size = UDim2.fromOffset(34,17); b.Position = UDim2.new(1,-42,0.5,-8.5)
 	b.BackgroundColor3 = df and cl.gr or Color3.fromRGB(55,55,65); b.Text = ""; cr(b,8.5)
 	local k = Instance.new("Frame",b); k.Size = UDim2.fromOffset(11,11); k.Position = UDim2.new(0,df and 20 or 3,0.5,-5.5)
@@ -184,6 +183,7 @@ for _,n in pairs({"HumanoidRootPart","Head","Torso","Left Arm","Right Arm","Left
 
 -- Player data
 local pd = {}
+local df = {}
 local drw = {}
 local hb
 
@@ -195,17 +195,17 @@ end
 
 local function sv(c)
 	if not c then return end
-	if not pd[c] then pd[c] = {} end
+	df[c] = {}
 	for _,p in pairs(c:GetChildren()) do
 		if p:IsA("BasePart") then
-			pd[c][p] = {Size=p.Size,T=p.Transparency,CC=p.CanCollide,ML=p.Massless}
+			df[c][p] = {Size=p.Size,T=p.Transparency,CC=p.CanCollide,ML=p.Massless}
 		end
 	end
 end
 
 local function rs(char)
-	if not char or not pd[char] then return end
-	for p,pr in pairs(pd[char]) do
+	if not char or not df[char] then return end
+	for p,pr in pairs(df[char]) do
 		if p and p.Parent then
 			p.Size=pr.Size;p.Transparency=pr.T;p.CanCollide=pr.CC;p.Massless=pr.ML
 		end
