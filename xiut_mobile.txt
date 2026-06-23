@@ -1,28 +1,11 @@
--- Wait for game to load
-if not game:IsLoaded() then
-	game.Loaded:Wait()
-end
-task.wait(0.5)
-
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
-local Workspace = game:GetService("Workspace")
 
 local localPlayer = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
-
--- Load MT-Api for hitbox hooks
-local mtApiLoaded = false
-pcall(function() if getgenv().MTAPIMutex then mtApiLoaded = true end end)
-if not mtApiLoaded then
-	pcall(function()
-		loadstring(game:HttpGet("https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua", true))()
-	end)
-end
 
 -- UI Container
 local parentGui = nil
@@ -33,6 +16,17 @@ if not parentGui then parentGui = localPlayer:WaitForChild("PlayerGui") end
 local oldGui = parentGui:FindFirstChild("XiutMobileGui")
 if oldGui then oldGui:Destroy() end
 
+-- Config
+local config = {
+	hitboxSize = 5,
+	hitboxEnabled = false,
+	espEnabled = false,
+	espNamesEnabled = false,
+	ignoreTeam = true,
+	transparency = 0.4,
+	noCollide = false,
+}
+
 -- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "XiutMobileGui"
@@ -42,42 +36,29 @@ screenGui.Parent = parentGui
 -- Theme
 local theme = {
 	bg = Color3.fromRGB(12, 12, 16),
-	topbar = Color3.fromRGB(18, 18, 24),
+	bar = Color3.fromRGB(18, 18, 24),
 	card = Color3.fromRGB(22, 22, 28),
-	border = Color3.fromRGB(40, 40, 48),
-	text = Color3.fromRGB(220, 220, 225),
+	border = Color3.fromRGB(42, 42, 50),
+	text = Color3.fromRGB(225, 225, 230),
 	muted = Color3.fromRGB(130, 130, 140),
-	accent = Color3.fromRGB(0, 200, 255),
-	green = Color3.fromRGB(0, 255, 140),
-	red = Color3.fromRGB(255, 60, 60),
+	blue = Color3.fromRGB(0, 190, 255),
+	green = Color3.fromRGB(0, 250, 140),
+	red = Color3.fromRGB(235, 60, 60),
 }
 
 -- Utilities
 local function addCorner(p, r)
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, r)
-	c.Parent = p
-	return c
+	local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, r); c.Parent = p; return c
 end
-
-local function addStroke(p, color, thick)
-	local s = Instance.new("UIStroke")
-	s.Color = color or theme.border
-	s.Thickness = thick or 1
-	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	s.Parent = p
-	return s
-end
-
-local function lerpColor(a, b, t)
-	return Color3.new(a.R + (b.R - a.R) * t, a.G + (b.G - a.G) * t, a.B + (b.B - a.B) * t)
+local function addStroke(p, c, t)
+	local s = Instance.new("UIStroke"); s.Color = c or theme.border; s.Thickness = t or 1; s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border; s.Parent = p; return s
 end
 
 -- Main Frame
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "Main"
-mainFrame.Size = UDim2.fromOffset(340, 420)
-mainFrame.Position = UDim2.new(0.5, -170, 0.5, -210)
+mainFrame.Size = UDim2.fromOffset(330, 400)
+mainFrame.Position = UDim2.new(0.5, -165, 0.5, -200)
 mainFrame.BackgroundColor3 = theme.bg
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
@@ -89,583 +70,391 @@ addStroke(mainFrame, Color3.fromRGB(50, 50, 60), 1.5)
 local topBar = Instance.new("Frame")
 topBar.Name = "TopBar"
 topBar.Size = UDim2.new(1, 0, 0, 48)
-topBar.BackgroundColor3 = theme.topbar
+topBar.BackgroundColor3 = theme.bar
 topBar.BorderSizePixel = 0
 topBar.Parent = mainFrame
-
-local topCorner = Instance.new("UICorner")
-topCorner.CornerRadius = UDim.new(0, 14)
-topCorner.Parent = topBar
+local topCorner = Instance.new("UICorner"); topCorner.CornerRadius = UDim.new(0, 14); topCorner.Parent = topBar
 
 local topCover = Instance.new("Frame")
-topCover.Size = UDim2.new(1, 0, 0, 12)
-topCover.Position = UDim2.new(0, 0, 1, -12)
-topCover.BackgroundColor3 = theme.topbar
-topCover.BorderSizePixel = 0
-topCover.Parent = topBar
+topCover.Size = UDim2.new(1, 0, 0, 12); topCover.Position = UDim2.new(0, 0, 1, -12)
+topCover.BackgroundColor3 = theme.bar; topCover.BorderSizePixel = 0; topCover.Parent = topBar
 
 local title = Instance.new("TextLabel")
 title.Name = "Title"
-title.Size = UDim2.new(0.7, 0, 1, 0)
-title.Position = UDim2.fromOffset(16, 0)
-title.BackgroundTransparency = 1
-title.Text = "XIUT PREMIUM"
-title.TextColor3 = theme.text
-title.Font = Enum.Font.GothamBold
-title.TextSize = 16
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = topBar
+title.Size = UDim2.new(0.7, 0, 1, 0); title.Position = UDim2.fromOffset(16, 0)
+title.BackgroundTransparency = 1; title.Text = "XIUT PREMIUM"
+title.TextColor3 = theme.text; title.Font = Enum.Font.GothamBold; title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left; title.Parent = topBar
 
-local titleGlow = Instance.new("UIGradient")
+local titleGrad = Instance.new("UIGradient")
 pcall(function()
-	titleGlow.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, theme.accent),
-		ColorSequenceKeypoint.new(1, theme.green)
-	})
-	titleGlow.Parent = title
+	titleGrad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, theme.blue), ColorSequenceKeypoint.new(1, theme.green)
+	}); titleGrad.Parent = title
 end)
 
 local closeBtn = Instance.new("TextButton")
-closeBtn.Name = "Close"
-closeBtn.Size = UDim2.fromOffset(30, 30)
-closeBtn.Position = UDim2.new(1, -40, 0.5, -15)
-closeBtn.BackgroundColor3 = theme.red
-closeBtn.Text = "−"
-closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 18
-closeBtn.Parent = topBar
+closeBtn.Name = "Close"; closeBtn.Size = UDim2.fromOffset(30, 30)
+closeBtn.Position = UDim2.new(1, -40, 0.5, -15); closeBtn.BackgroundColor3 = theme.red
+closeBtn.Text = "−"; closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Font = Enum.Font.GothamBold; closeBtn.TextSize = 18; closeBtn.Parent = topBar
 addCorner(closeBtn, 7)
 
--- Content
-local content = Instance.new("ScrollingFrame")
-content.Name = "Content"
-content.Size = UDim2.new(1, -20, 1, -68)
-content.Position = UDim2.fromOffset(10, 56)
-content.BackgroundTransparency = 1
-content.BorderSizePixel = 0
-content.ScrollBarThickness = 3
-content.ScrollBarImageColor3 = Color3.fromRGB(50, 50, 60)
-content.Parent = mainFrame
+-- Scroll
+local scroll = Instance.new("ScrollingFrame")
+scroll.Name = "Scroll"
+scroll.Size = UDim2.new(1, -20, 1, -68); scroll.Position = UDim2.fromOffset(10, 56)
+scroll.BackgroundTransparency = 1; scroll.BorderSizePixel = 0
+scroll.ScrollBarThickness = 3; scroll.ScrollBarImageColor3 = Color3.fromRGB(50, 50, 60)
+scroll.Parent = mainFrame
 
 local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 8)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Parent = content
+layout.Padding = UDim.new(0, 8); layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.SortOrder = Enum.SortOrder.LayoutOrder; layout.Parent = scroll
 
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	content.CanvasSize = UDim2.fromOffset(0, layout.AbsoluteContentSize.Y + 20)
+	scroll.CanvasSize = UDim2.fromOffset(0, layout.AbsoluteContentSize.Y + 20)
 end)
 
--- Component: Section Header
+-- === UI COMPONENTS ===
+
 local function addSection(text)
-	local lbl = Instance.new("TextLabel")
-	lbl.Size = UDim2.new(1, -10, 0, 22)
-	lbl.BackgroundTransparency = 1
-	lbl.Text = string.upper(text)
-	lbl.TextColor3 = theme.accent
-	lbl.Font = Enum.Font.GothamBold
-	lbl.TextSize = 10
-	lbl.TextXAlignment = Enum.TextXAlignment.Left
-	lbl.Parent = content
+	local l = Instance.new("TextLabel"); l.Size = UDim2.new(1, -10, 0, 22)
+	l.BackgroundTransparency = 1; l.Text = string.upper(text)
+	l.TextColor3 = theme.blue; l.Font = Enum.Font.GothamBold; l.TextSize = 10
+	l.TextXAlignment = Enum.TextXAlignment.Left; l.Parent = scroll
 end
 
--- Component: Toggle
 local function addToggle(text, default, onChange)
-	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(1, 0, 0, 40)
-	frame.BackgroundColor3 = theme.card
-	frame.Parent = content
-	addCorner(frame, 8)
-	addStroke(frame)
+	local f = Instance.new("Frame"); f.Size = UDim2.new(1, 0, 0, 40)
+	f.BackgroundColor3 = theme.card; f.Parent = scroll; addCorner(f, 8); addStroke(f)
 
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(0.7, 0, 1, 0)
-	label.Position = UDim2.fromOffset(12, 0)
-	label.BackgroundTransparency = 1
-	label.Text = text
-	label.TextColor3 = theme.text
-	label.Font = Enum.Font.GothamMedium
-	label.TextSize = 13
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.Parent = frame
+	local lbl = Instance.new("TextLabel"); lbl.Size = UDim2.new(0.7, 0, 1, 0)
+	lbl.Position = UDim2.fromOffset(12, 0); lbl.BackgroundTransparency = 1
+	lbl.Text = text; lbl.TextColor3 = theme.text; lbl.Font = Enum.Font.GothamMedium
+	lbl.TextSize = 13; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = f
 
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.fromOffset(40, 22)
+	local btn = Instance.new("TextButton"); btn.Size = UDim2.fromOffset(40, 22)
 	btn.Position = UDim2.new(1, -50, 0.5, -11)
 	btn.BackgroundColor3 = default and theme.green or Color3.fromRGB(55, 55, 65)
-	btn.Text = ""
-	btn.Parent = frame
-	addCorner(btn, 11)
+	btn.Text = ""; btn.Parent = f; addCorner(btn, 11)
 
-	local knob = Instance.new("Frame")
-	knob.Size = UDim2.fromOffset(16, 16)
+	local knob = Instance.new("Frame"); knob.Size = UDim2.fromOffset(16, 16)
 	knob.Position = UDim2.new(0, default and 21 or 3, 0.5, -8)
-	knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	knob.BorderSizePixel = 0
-	knob.Parent = btn
-	addCorner(knob, 8)
+	knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255); knob.BorderSizePixel = 0; knob.Parent = btn; addCorner(knob, 8)
 
 	local state = default
 	btn.MouseButton1Click:Connect(function()
 		state = not state
-		local targetX = state and 21 or 3
-		local targetColor = state and theme.green or Color3.fromRGB(55, 55, 65)
-		TweenService:Create(knob, TweenInfo.new(0.15), {Position = UDim2.new(0, targetX, 0.5, -8)}):Play()
-		TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = targetColor}):Play()
+		TweenService:Create(knob, TweenInfo.new(0.15), {Position = UDim2.new(0, state and 21 or 3, 0.5, -8)}):Play()
+		TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = state and theme.green or Color3.fromRGB(55, 55, 65)}):Play()
 		onChange(state)
 	end)
-
 	return { get = function() return state end, set = function(v)
-		state = v
-		knob.Position = UDim2.new(0, state and 21 or 3, 0.5, -8)
-		btn.BackgroundColor3 = state and theme.green or Color3.fromRGB(55, 55, 65)
-		onChange(state)
+		state = v; knob.Position = UDim2.new(0, state and 21 or 3, 0.5, -8)
+		btn.BackgroundColor3 = state and theme.green or Color3.fromRGB(55, 55, 65); onChange(state)
 	end }
 end
 
--- Component: Slider
 local function addSlider(text, min, max, default, onChange)
-	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(1, 0, 0, 52)
-	frame.BackgroundColor3 = theme.card
-	frame.Parent = content
-	addCorner(frame, 8)
-	addStroke(frame)
+	local f = Instance.new("Frame"); f.Size = UDim2.new(1, 0, 0, 52)
+	f.BackgroundColor3 = theme.card; f.Parent = scroll; addCorner(f, 8); addStroke(f)
 
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(0.65, 0, 0, 20)
-	label.Position = UDim2.fromOffset(12, 5)
-	label.BackgroundTransparency = 1
-	label.Text = text
-	label.TextColor3 = theme.text
-	label.Font = Enum.Font.GothamMedium
-	label.TextSize = 12
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.Parent = frame
+	local lbl = Instance.new("TextLabel"); lbl.Size = UDim2.new(0.65, 0, 0, 20)
+	lbl.Position = UDim2.fromOffset(12, 5); lbl.BackgroundTransparency = 1
+	lbl.Text = text; lbl.TextColor3 = theme.text; lbl.Font = Enum.Font.GothamMedium
+	lbl.TextSize = 12; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = f
 
-	local valueLabel = Instance.new("TextLabel")
-	valueLabel.Size = UDim2.new(0.3, 0, 0, 20)
-	valueLabel.Position = UDim2.new(0.7, 0, 0, 5)
-	valueLabel.BackgroundTransparency = 1
-	valueLabel.Text = tostring(default)
-	valueLabel.TextColor3 = theme.accent
-	valueLabel.Font = Enum.Font.GothamBold
-	valueLabel.TextSize = 13
-	valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-	valueLabel.TextScaled = true
-	valueLabel.Parent = frame
+	local valLbl = Instance.new("TextLabel"); valLbl.Size = UDim2.new(0.3, 0, 0, 20)
+	valLbl.Position = UDim2.new(0.7, 0, 0, 5); valLbl.BackgroundTransparency = 1
+	valLbl.Text = tostring(default); valLbl.TextColor3 = theme.blue; valLbl.Font = Enum.Font.GothamBold
+	valLbl.TextSize = 13; valLbl.TextXAlignment = Enum.TextXAlignment.Right; valLbl.TextScaled = true; valLbl.Parent = f
 
-	local track = Instance.new("Frame")
-	track.Size = UDim2.new(1, -24, 0, 6)
-	track.Position = UDim2.new(0, 12, 0, 32)
-	track.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-	track.BorderSizePixel = 0
-	track.Parent = frame
-	addCorner(track, 3)
+	local track = Instance.new("Frame"); track.Size = UDim2.new(1, -24, 0, 6)
+	track.Position = UDim2.new(0, 12, 0, 32); track.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+	track.BorderSizePixel = 0; track.Parent = f; addCorner(track, 3)
 
-	local fill = Instance.new("Frame")
-	fill.Size = UDim2.fromScale((default - min) / (max - min), 1)
-	fill.BackgroundColor3 = theme.accent
-	fill.BorderSizePixel = 0
-	fill.Parent = track
-	addCorner(fill, 3)
+	local fill = Instance.new("Frame"); fill.Size = UDim2.fromScale((default - min) / (max - min), 1)
+	fill.BackgroundColor3 = theme.blue; fill.BorderSizePixel = 0; fill.Parent = track; addCorner(fill, 3)
 
-	local thumb = Instance.new("TextButton")
-	thumb.Size = UDim2.fromOffset(16, 16)
+	local thumb = Instance.new("TextButton"); thumb.Size = UDim2.fromOffset(16, 16)
 	thumb.Position = UDim2.new((default - min) / (max - min), -8, 0.5, -8)
-	thumb.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	thumb.Text = ""
-	thumb.Parent = track
-	addCorner(thumb, 8)
-	addStroke(thumb, theme.accent, 1.5)
+	thumb.BackgroundColor3 = Color3.fromRGB(255, 255, 255); thumb.Text = ""; thumb.Parent = track
+	addCorner(thumb, 8); addStroke(thumb, theme.blue, 1.5)
 
 	local dragging = false
 	local function update(inp)
-		local w = track.AbsoluteSize.X
-		if w <= 0 then return end
+		local w = track.AbsoluteSize.X; if w <= 0 then return end
 		local ratio = math.clamp((inp.Position.X - track.AbsolutePosition.X) / w, 0, 1)
-		fill.Size = UDim2.fromScale(ratio, 1)
-		thumb.Position = UDim2.new(ratio, -8, 0.5, -8)
-		local val = min + (max - min) * ratio
-		valueLabel.Text = tostring(math.floor(val * 100) / 100)
-		onChange(val)
+		fill.Size = UDim2.fromScale(ratio, 1); thumb.Position = UDim2.new(ratio, -8, 0.5, -8)
+		local val = min + (max - min) * ratio; valLbl.Text = tostring(math.floor(val * 100) / 100); onChange(val)
 	end
 
-	thumb.InputBegan:Connect(function(inp)
-		if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
-			dragging = true
-		end
+	thumb.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = true end
 	end)
-
-	local conn1 = UserInputService.InputChanged:Connect(function(inp)
-		if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
-			update(inp)
-		end
+	local c1 = UserInputService.InputChanged:Connect(function(i)
+		if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then update(i) end
 	end)
-
-	local conn2 = UserInputService.InputEnded:Connect(function(inp)
-		if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
-			dragging = false
-		end
+	local c2 = UserInputService.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = false end
 	end)
-
-	frame.Destroying:Connect(function()
-		conn1:Disconnect()
-		conn2:Disconnect()
-	end)
-
+	f.Destroying:Connect(function() c1:Disconnect(); c2:Disconnect() end)
 	return { set = function(val)
-		local ratio = (val - min) / (max - min)
-		fill.Size = UDim2.fromScale(ratio, 1)
-		thumb.Position = UDim2.new(ratio, -8, 0.5, -8)
-		valueLabel.Text = tostring(math.floor(val * 100) / 100)
+		local r = (val - min) / (max - min); fill.Size = UDim2.fromScale(r, 1)
+		thumb.Position = UDim2.new(r, -8, 0.5, -8); valLbl.Text = tostring(math.floor(val * 100) / 100)
 	end }
 end
 
 -- Floating Button
 local floatBtn = Instance.new("TextButton")
-floatBtn.Name = "FloatBtn"
-floatBtn.Size = UDim2.fromOffset(50, 50)
-floatBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
-floatBtn.BackgroundColor3 = theme.topbar
-floatBtn.Text = "X"
-floatBtn.TextColor3 = theme.text
-floatBtn.Font = Enum.Font.GothamBold
-floatBtn.TextSize = 16
-floatBtn.Parent = screenGui
-floatBtn.Visible = false
-addCorner(floatBtn, 25)
-addStroke(floatBtn, theme.accent, 2)
-
+floatBtn.Name = "Float"; floatBtn.Size = UDim2.fromOffset(50, 50)
+floatBtn.Position = UDim2.new(0.05, 0, 0.15, 0); floatBtn.BackgroundColor3 = theme.bar
+floatBtn.Text = "X"; floatBtn.TextColor3 = theme.text; floatBtn.Font = Enum.Font.GothamBold
+floatBtn.TextSize = 16; floatBtn.Parent = screenGui; floatBtn.Visible = false
+addCorner(floatBtn, 25); addStroke(floatBtn, theme.blue, 2)
 local floatGrad = Instance.new("UIGradient")
 pcall(function()
 	floatGrad.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, theme.accent),
-		ColorSequenceKeypoint.new(1, theme.green)
-	})
-	floatGrad.Parent = floatBtn
+		ColorSequenceKeypoint.new(0, theme.blue), ColorSequenceKeypoint.new(1, theme.green)
+	}); floatGrad.Parent = floatBtn
 end)
 
-closeBtn.MouseButton1Click:Connect(function()
-	mainFrame.Visible = false
-	floatBtn.Visible = true
-end)
-floatBtn.MouseButton1Click:Connect(function()
-	mainFrame.Visible = true
-	floatBtn.Visible = false
-end)
+closeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false; floatBtn.Visible = true end)
+floatBtn.MouseButton1Click:Connect(function() mainFrame.Visible = true; floatBtn.Visible = false end)
 
 -- Draggable
 local function makeDraggable(g)
 	local drag, inp, start, pos
-	local function update(inp)
-		local d = inp.Position - start
-		g.Position = UDim2.new(pos.X.Scale, pos.X.Offset + d.X, pos.Y.Scale, pos.Y.Offset + d.Y)
-	end
+	local function up(i) local d = i.Position - start; g.Position = UDim2.new(pos.X.Scale, pos.X.Offset + d.X, pos.Y.Scale, pos.Y.Offset + d.Y) end
 	g.InputBegan:Connect(function(i)
 		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
 			drag = true; start = i.Position; pos = g.Position
 			i.Changed:Connect(function() if i.UserInputState == Enum.UserInputState.End then drag = false end end)
 		end
 	end)
-	g.InputChanged:Connect(function(i)
-		if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then inp = i end
-	end)
-	UserInputService.InputChanged:Connect(function(i)
-		if i == inp and drag then update(i) end
-	end)
+	g.InputChanged:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then inp = i end end)
+	UserInputService.InputChanged:Connect(function(i) if i == inp and drag then up(i) end end)
 end
-makeDraggable(mainFrame)
-makeDraggable(floatBtn)
+makeDraggable(mainFrame); makeDraggable(floatBtn)
 
--- ==================== HITBOX ENGINE ====================
+-- === HITBOX ENGINE (Direct Property Approach) ===
 
-local config = {
-	enabled = false,
-	size = 5,
-	transparency = 0.4,
-	noCollide = false,
-	parts = {
-		Head = true,
-		HumanoidRootPart = true,
-		Torso = true,
-		["Left Arm"] = true,
-		["Right Arm"] = true,
-		["Left Leg"] = true,
-		["Right Leg"] = true,
-	},
-	espEnabled = false,
-	espNames = false,
-	ignoreTeam = true,
+local playerConns = {}
+local espBillboards = {}
+
+local function clearESP(char)
+	if not char then return end
+	local h = char:FindFirstChild("XiutHighlight"); if h then h:Destroy() end
+	local b = char:FindFirstChild("XiutBillboard"); if b then b:Destroy() end
+end
+
+local defaultSizes = {
+	HumanoidRootPart = Vector3.new(2, 2, 1),
+	Torso = Vector3.new(2, 2, 1),
+	Head = Vector3.new(1, 1, 1),
 }
 
-local playerData = {}
-local espNameObjects = {}
-
-local function isPartMatch(name, cfgName)
-	if cfgName == "Left Arm" then return string.match(name, "Left") and (string.match(name, "Arm") or string.match(name, "Hand")) end
-	if cfgName == "Right Arm" then return string.match(name, "Right") and (string.match(name, "Arm") or string.match(name, "Hand")) end
-	if cfgName == "Left Leg" then return string.match(name, "Left") and (string.match(name, "Leg") or string.match(name, "Foot")) end
-	if cfgName == "Right Leg" then return string.match(name, "Right") and (string.match(name, "Leg") or string.match(name, "Foot")) end
-	return name == cfgName
+local function resetPart(part)
+	if not part then return end
+	if defaultSizes[part.Name] then
+		part.Size = defaultSizes[part.Name]
+	end
+	part.CanCollide = true
+	part.Transparency = 1
+	part.Material = Enum.Material.Plastic
 end
 
-local function hookPart(part, pData)
-	if not part:IsA("BasePart") then return end
-
-	local props = {
-		Size = part.Size,
-		Transparency = part.Transparency,
-		Massless = part.Massless,
-		CanCollide = part.CanCollide,
-	}
-
-	local gSize = part:AddGetHook("Size", props.Size)
-	local gTrans = part:AddGetHook("Transparency", props.Transparency)
-	local gMass = part:AddGetHook("Massless", props.Massless)
-	local gColl = part:AddGetHook("CanCollide", props.CanCollide)
-
-	local sSize = part:AddSetHook("Size", function(_, v)
-		props.Size = v
-		gSize:Modify("Size", props.Size)
-		if config.enabled and pData.alive then
-			for name, active in pairs(config.parts) do
-				if active and isPartMatch(part.Name, name) then
-					return Vector3.new(config.size, config.size, config.size)
-				end
-			end
-		end
-		return props.Size
-	end)
-
-	local sTrans = part:AddSetHook("Transparency", function(_, v)
-		props.Transparency = v
-		gTrans:Modify("Transparency", props.Transparency)
-		if config.enabled and pData.alive then
-			for name, active in pairs(config.parts) do
-				if active and isPartMatch(part.Name, name) then
-					return config.transparency
-				end
-			end
-		end
-		return props.Transparency
-	end)
-
-	local sMass = part:AddSetHook("Massless", function(_, v)
-		props.Massless = v
-		gMass:Modify("Massless", props.Massless)
-		if config.enabled and part.Name ~= "HumanoidRootPart" and pData.alive then
-			for name, active in pairs(config.parts) do
-				if active and isPartMatch(part.Name, name) then
-					return true
-				end
-			end
-		end
-		return props.Massless
-	end)
-
-	local sColl = part:AddSetHook("CanCollide", function(_, v)
-		props.CanCollide = v
-		gColl:Modify("CanCollide", props.CanCollide)
-		if config.enabled and config.noCollide and pData.alive then
-			for name, active in pairs(config.parts) do
-				if active and isPartMatch(part.Name, name) then
-					return false
-				end
-			end
-		end
-		return props.CanCollide
-	end)
-
-	local cleanup = {}
-	table.insert(cleanup, part.Destroying:Connect(function()
-		gSize:Remove(); gTrans:Remove(); gMass:Remove(); gColl:Remove()
-		sSize:Remove(); sTrans:Remove(); sMass:Remove(); sColl:Remove()
-		for _, c in pairs(cleanup) do c:Disconnect() end
-	end))
+local function expandPart(part)
+	if not part then return end
+	local size = config.hitboxSize
+	part.Size = Vector3.new(size, size, size)
+	part.CanCollide = not config.noCollide
+	part.Transparency = config.transparency
+	part.Material = Enum.Material.Neon
+	part.Color = Color3.fromRGB(255, 0, 50)
 end
 
-local function setupPlayer(player)
-	if player == localPlayer then return end
-	if playerData[player] then return end
+local function processPlayer(p)
+	if p == localPlayer then return end
 
-	local pData = { alive = true }
-	playerData[player] = pData
+	local char = p.Character
+	if not char then return end
 
-	local function onChar(char)
-		if not char then return end
-		pData.alive = true
+	local onSameTeam = p.Team == localPlayer.Team
+	local shouldApply = not (config.ignoreTeam and onSameTeam)
 
-		local hum = char:FindFirstChildWhichIsA("Humanoid")
-		if hum then
-			hum.StateChanged:Connect(function(_, newState)
-				pData.alive = newState ~= Enum.HumanoidStateType.Dead
-			end)
-			hum.Died:Connect(function()
-				pData.alive = false
-			end)
-		end
-
+	-- Hitbox: expand ALL body parts, not just HRP
+	if config.hitboxEnabled and shouldApply then
 		for _, part in pairs(char:GetChildren()) do
-			hookPart(part, pData)
+			if part:IsA("BasePart") then
+				expandPart(part)
+			end
 		end
+	else
+		for _, part in pairs(char:GetChildren()) do
+			if part:IsA("BasePart") then
+				resetPart(part)
+			end
+		end
+	end
 
-		char.ChildAdded:Connect(function(child)
-			task.wait()
-			hookPart(child, pData)
+	-- ESP Glow
+	if config.espEnabled and shouldApply then
+		local hl = char:FindFirstChild("XiutHighlight")
+		if not hl then
+			hl = Instance.new("Highlight"); hl.Name = "XiutHighlight"
+			hl.OutlineColor = Color3.fromRGB(255, 255, 255); hl.FillTransparency = 0.5; hl.OutlineTransparency = 0.1
+			hl.Parent = char
+		end
+		hl.FillColor = onSameTeam and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+	else
+		local hl = char:FindFirstChild("XiutHighlight"); if hl then hl:Destroy() end
+	end
+
+	-- ESP Name
+	local head = char:FindFirstChild("Head")
+	if config.espNamesEnabled and shouldApply and head then
+		local bb = char:FindFirstChild("XiutBillboard")
+		if not bb then
+			bb = Instance.new("BillboardGui"); bb.Name = "XiutBillboard"
+			bb.AlwaysOnTop = true; bb.Size = UDim2.fromOffset(120, 25); bb.StudsOffset = Vector3.new(0, 2.5, 0)
+			local lbl = Instance.new("TextLabel"); lbl.Size = UDim2.fromScale(1, 1); lbl.BackgroundTransparency = 1
+			lbl.TextColor3 = onSameTeam and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+			lbl.Font = Enum.Font.GothamBold; lbl.TextSize = 11
+			lbl.TextStrokeTransparency = 0; lbl.TextStrokeColor3 = Color3.new(0, 0, 0)
+			lbl.Parent = bb; bb.Parent = char
+		end
+		espBillboards[p.UserId] = bb
+	else
+		local bb = char:FindFirstChild("XiutBillboard"); if bb then bb:Destroy() end
+		espBillboards[p.UserId] = nil
+	end
+end
+
+local function updateAll()
+	for _, p in ipairs(Players:GetPlayers()) do
+		pcall(function() processPlayer(p) end)
+	end
+end
+
+-- Player connections
+local function setupConns(p)
+	if p == localPlayer then return end
+	if playerConns[p.UserId] then
+		for _, c in ipairs(playerConns[p.UserId]) do c:Disconnect() end
+	end
+
+	local conns = {}
+	table.insert(conns, p.CharacterAdded:Connect(function(char)
+		task.wait(0.5); pcall(function() processPlayer(p) end)
+	end))
+	table.insert(conns, p.CharacterRemoving:Connect(function(char)
+		pcall(function() clearESP(char); espBillboards[p.UserId] = nil end)
+	end))
+	playerConns[p.UserId] = conns
+
+	if p.Character then
+		task.wait(0.5); pcall(function() processPlayer(p) end)
+	end
+end
+
+local function removeConns(p)
+	pcall(function() if p.Character then clearESP(p.Character) end end)
+	espBillboards[p.UserId] = nil
+	if playerConns[p.UserId] then
+		for _, c in ipairs(playerConns[p.UserId]) do c:Disconnect() end
+		playerConns[p.UserId] = nil
+	end
+end
+
+for _, p in ipairs(Players:GetPlayers()) do setupConns(p) end
+Players.PlayerAdded:Connect(setupConns)
+Players.PlayerRemoving:Connect(removeConns)
+
+-- Distance loop
+task.spawn(function()
+	while true do
+		task.wait(0.5)
+		pcall(function()
+			local myChar = localPlayer.Character; local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+			if myRoot and config.espNamesEnabled then
+				local myPos = myRoot.Position
+				for uid, bb in pairs(espBillboards) do
+					local p = Players:GetPlayerByUserId(uid)
+					if p and p.Character and bb and bb.Parent then
+						local root = p.Character:FindFirstChild("HumanoidRootPart")
+						local lbl = bb:FindFirstChildOfClass("TextLabel")
+						if root and lbl then
+							local dist = math.floor((myPos - root.Position).Magnitude)
+							lbl.Text = p.Name .. " [" .. dist .. "m]"
+						end
+					else
+						espBillboards[uid] = nil
+					end
+				end
+			end
 		end)
 	end
-
-	if player.Character then
-		onChar(player.Character)
-	end
-
-	player.CharacterAdded:Connect(function(char)
-		task.wait(0.3)
-		onChar(char)
-	end)
-
-	player.CharacterRemoving:Connect(function()
-		pData.alive = false
-	end)
-end
-
-for _, p in pairs(Players:GetPlayers()) do setupPlayer(p) end
-Players.PlayerAdded:Connect(setupPlayer)
-Players.PlayerRemoving:Connect(function(p)
-	playerData[p] = nil
-	if espNameObjects[p] then
-		espNameObjects[p]:Remove()
-		espNameObjects[p] = nil
-	end
 end)
 
--- ESP System
-local function updateESP()
-	if not config.espNames then
-		for p, obj in pairs(espNameObjects) do
-			obj.Visible = false
-		end
-		return
+-- Cleanup
+screenGui.Destroying:Connect(function()
+	for uid, conns in pairs(playerConns) do
+		for _, c in ipairs(conns) do c:Disconnect() end
 	end
-
-	Camera = Workspace.CurrentCamera
-	if not Camera then return end
-
-	for _, p in pairs(Players:GetPlayers()) do
-		if p == localPlayer then
-			if espNameObjects[p] then
-				espNameObjects[p].Visible = false
-			end
-		elseif config.ignoreTeam and p.Team == localPlayer.Team then
-			if espNameObjects[p] then espNameObjects[p].Visible = false end
-		else
-			local char = p.Character
-			if not char or not playerData[p] or not playerData[p].alive then
-				if espNameObjects[p] then espNameObjects[p].Visible = false end
-			else
-				local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-				if not root then
-					if espNameObjects[p] then espNameObjects[p].Visible = false end
-				else
-					if not espNameObjects[p] then
-						local success, obj = pcall(function()
-							local d = Drawing.new("Text")
-							d.Center = true
-							d.Outline = true
-							d.Size = 18
-							d.Color = Color3.fromRGB(255, 255, 255)
-							d.OutlineColor = Color3.fromRGB(0, 0, 0)
-							return d
-						end)
-						if success then
-							espNameObjects[p] = obj
-						else
-							return
-						end
-					end
-
-					local pos, vis = Camera:WorldToViewportPoint(root.Position)
-					if vis then
-						local dist = math.floor((Camera.CFrame.Position - root.Position).Magnitude)
-						local col = p.Team == localPlayer.Team and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
-						espNameObjects[p].Color = col
-						espNameObjects[p].Text = p.Name .. " [" .. dist .. "m]"
-						espNameObjects[p].Position = Vector2.new(pos.X, pos.Y - 55)
-						espNameObjects[p].Size = math.clamp(400 / math.max(pos.Z, 1), 10, 40)
-						espNameObjects[p].Visible = true
-					else
-						espNameObjects[p].Visible = false
-					end
+	for _, p in ipairs(Players:GetPlayers()) do
+		pcall(function()
+			if p.Character then
+				clearESP(p.Character)
+				for _, part in pairs(p.Character:GetChildren()) do
+					if part:IsA("BasePart") then resetPart(part) end
 				end
 			end
-		end
+		end)
 	end
-end
-
-RunService:BindToRenderStep("XiutESP", Enum.RenderPriority.Camera.Value - 1, updateESP)
-
--- ScreenGui cleanup
-screenGui.Destroying:Connect(function()
-	for p, obj in pairs(espNameObjects) do
-		pcall(function() obj:Remove() end)
-	end
-	espNameObjects = nil
-	playerData = nil
 end)
 
--- ==================== UI BUILD ====================
+-- === UI BUILD ===
 
 addSection("Hitbox Extender")
 
-local tglEnabled = addToggle("Enabled", config.enabled, function(v)
-	config.enabled = v
+local tglHitbox = addToggle("Enabled", config.hitboxEnabled, function(v)
+	config.hitboxEnabled = v; updateAll()
 end)
 
-local sldSize = addSlider("Size", 1, 30, config.size, function(v)
-	config.size = v
+local sldSize = addSlider("Size", 1, 30, config.hitboxSize, function(v)
+	config.hitboxSize = v; if config.hitboxEnabled then updateAll() end
 end)
 
 local sldTrans = addSlider("Transparency", 0, 1, config.transparency, function(v)
-	config.transparency = v
+	config.transparency = v; if config.hitboxEnabled then updateAll() end
 end)
 
-local tglNoColl = addToggle("No Collision", config.noCollide, function(v)
-	config.noCollide = v
+local tglColl = addToggle("No Collision", config.noCollide, function(v)
+	config.noCollide = v; if config.hitboxEnabled then updateAll() end
 end)
-
-addSection("Body Parts")
-
-local partToggles = {}
-for _, name in pairs({ "HumanoidRootPart", "Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg" }) do
-	partToggles[name] = addToggle(name, config.parts[name], function(v)
-		config.parts[name] = v
-	end)
-end
 
 addSection("ESP")
 
-local tglEspNames = addToggle("Name ESP", config.espNames, function(v)
-	config.espNames = v
+local tglESP = addToggle("ESP Glow", config.espEnabled, function(v)
+	config.espEnabled = v; updateAll()
 end)
 
-local tglIgnoreTeam = addToggle("Ignore Team", config.ignoreTeam, function(v)
-	config.ignoreTeam = v
+local tglNames = addToggle("ESP Names", config.espNamesEnabled, function(v)
+	config.espNamesEnabled = v; updateAll()
+end)
+
+local tglTeam = addToggle("Ignore Team", config.ignoreTeam, function(v)
+	config.ignoreTeam = v; updateAll()
 end)
 
 addSection("Info")
 
 local info = Instance.new("TextLabel")
-info.Size = UDim2.new(1, -10, 0, 55)
-info.BackgroundTransparency = 1
-info.Text = "XIUT Premium Hitbox Extender v2\nUsa MT-Api hooks para modificar hitboxes\nTeam check e ESP com distancia inclusos"
-info.TextColor3 = theme.muted
-info.Font = Enum.Font.GothamMedium
-info.TextSize = 11
-info.TextWrapped = true
-info.TextXAlignment = Enum.TextXAlignment.Left
-info.Parent = content
+info.Size = UDim2.new(1, -10, 0, 55); info.BackgroundTransparency = 1
+info.Text = "XIUT Premium v2\nExpande hitbox de todas as partes do corpo\nESP com Highlight + nomes com distancia"
+info.TextColor3 = theme.muted; info.Font = Enum.Font.GothamMedium; info.TextSize = 11
+info.TextWrapped = true; info.TextXAlignment = Enum.TextXAlignment.Left; info.Parent = scroll
 
-print("[XIUT] Premium carregado com sucesso!")
+print("[XIUT] Premium carregado!")
