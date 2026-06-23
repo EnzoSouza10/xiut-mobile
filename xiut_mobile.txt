@@ -97,7 +97,7 @@ mainGroupbox:AddSlider("extenderTransparency", { Text = "Transparency", Min = 0,
 mainGroupbox:AddInput("customPartName", { Text = "Custom Part Name", Default = "HeadHB" }):OnChanged(updatePlayers)
 mainGroupbox:AddDropdown("extenderPartList", { Text = "Body Parts", AllowNull = true, Multi = true, Values = { "Custom Part", "Head", "HumanoidRootPart", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg" }, Default = "HumanoidRootPart" }):OnChanged(updatePlayers)
 
-antiGroupbox:AddToggle("antiDetectToggled", { Text = "Anti-Detect" }):AddToolTip("Reseta hitbox ao atirar para evitar deteccao")
+antiGroupbox:AddToggle("antiDetectToggled", { Text = "Anti-Detect" })
 Toggles.antiDetectToggled:OnChanged(updatePlayers)
 antiGroupbox:AddSlider("adDelay", { Text = "AD Delay (s)", Min = 0.02, Max = 0.5, Default = 0.12, Rounding = 3 }):OnChanged(updatePlayers)
 
@@ -713,7 +713,7 @@ emergencyGroupbox:AddButton("Fix Missing Players", function()
 		Library:Notify("No missing players found")
 	end
 	updatePlayers()
-end):AddToolTip("Attempts to find players that were not detected by the hbe (somehow)")
+end)
 
 if game.PlaceId == 111311599 then
 	local anticheat = game:GetService("ReplicatedFirst")["Serverbased AntiCheat"]
