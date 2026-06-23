@@ -6,7 +6,6 @@
 ╚═══════════════════════════════════════════╝
 ]]
 
--- polyfill table.find (não existe em executores antigos/mobile)
 if not table.find then
 	table.find = function(t, value)
 		for i = 1, #t do
@@ -18,8 +17,7 @@ if not table.find then
 	end
 end
 
-local env = getgenv or (function() return _G end)
-local GENV = env()
+local GENV = (getgenv or function() return _G end)()
 
 if GENV.XitLoaded ~= nil then
 	return
@@ -30,15 +28,13 @@ if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
 
--- carrega MT-Api com fallback
 local mtApiLoaded = false
 if not GENV.MTAPIMutex then
-	local success, err = pcall(loadstring, game:HttpGet("https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua", true))
-	if success then
-		err()
+	local code = game:HttpGet("https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua", true)
+	local fn = loadstring(code)
+	if fn then
+		pcall(fn)
 		mtApiLoaded = true
-	else
-		warn("XIT: MT-Api failed to load:", err)
 	end
 end
 
@@ -58,7 +54,9 @@ local lPlayer = Players.LocalPlayer
 local players = {}
 local entities = {}
 local teamModule = nil
+
 local hasDrawing = pcall(function() local d = Drawing.new("Text"); d:Remove() end)
+local hasHighlight = pcall(function() local h = Instance.new("Highlight"); h:Destroy() end)
 
 local function updatePlayers()
 	if not GENV.XitLoaded then return end
@@ -109,10 +107,8 @@ if hasDrawing then
 	espGroupbox:AddToggle("espNameUseTeamColor", { Text = "Use Team Color For Name" }):OnChanged(updatePlayers)
 	espGroupbox:AddDropdown("espNameType", { Text = "Name Type", AllowNull = false, Multi = false, Values = { "Display Name", "Account Name" }, Default = "Display Name" }):OnChanged(updatePlayers)
 else
-	espGroupbox:AddLabel("Name (not supported on this executor)")
+	espGroupbox:AddLabel("Name ESP (nao suportado nesse executor)")
 end
-
-local hasHighlight = pcall(function() local h = Instance.new("Highlight"); h:Destroy() end)
 
 if hasHighlight then
 	espGroupbox:AddToggle("espHighlightToggled", { Text = "Chams" }):AddColorPicker("espHighlightColor1", { Title = "Fill Color", Default = Color3.fromRGB(0, 0, 0) }):AddColorPicker("espHighlightColor2", { Title = "Outline Color", Default = Color3.fromRGB(0, 0, 0) })
@@ -124,7 +120,7 @@ if hasHighlight then
 	espGroupbox:AddSlider("espHighlightFillTransparency", { Text = "Chams Fill Transparency", Min = 0, Max = 1, Default = 0.5, Rounding = 2 }):OnChanged(updatePlayers)
 	espGroupbox:AddSlider("espHighlightOutlineTransparency", { Text = "Chams Outline Transparency", Min = 0, Max = 1, Default = 0, Rounding = 2 }):OnChanged(updatePlayers)
 else
-	espGroupbox:AddLabel("Chams (not supported on this executor)")
+	espGroupbox:AddLabel("Chams (nao suportado nesse executor)")
 end
 
 miscGroupbox:AddLabel("Toggle UI"):AddKeyPicker("menuKeybind", { Default = "End", NoUI = true, Text = "Menu Keybind" })
@@ -161,7 +157,6 @@ end
 local function addEntity(entity)
 end
 
--- anti detect
 local adActive = false
 local UserInputService = game:GetService("UserInputService")
 
@@ -284,17 +279,18 @@ local function addPlayer(player)
 		Toggles.ignoreSelectedPlayersToggled.Value and table.find(Options.ignorePlayerList:GetActiveValues(), tostring(player.Name))
 	end
 
-	local debounce = false
+	-- hbe
 
-	if mtApiLoaded then
-		local function setup(part)
-			defaultProperties[part.Name] = {}
-			local properties = defaultProperties[part.Name]
-			properties.Size = part.Size
-			properties.Transparency = part.Transparency
-			properties.Massless = part.Massless
-			properties.CanCollide = part.CanCollide
-			properties.CollisionGroupId = part.CollisionGroupId
+	local debounce = false
+	local function setup(part)
+		defaultProperties[part.Name] = {}
+		local properties = defaultProperties[part.Name]
+		properties.Size = part.Size
+		properties.Transparency = part.Transparency
+		properties.Massless = part.Massless
+		properties.CanCollide = part.CanCollide
+		properties.CollisionGroupId = part.CollisionGroupId
+		if mtApiLoaded then
 			local getSizeHook = part:AddGetHook("Size", properties.Size)
 			local getTransparencyHook = part:AddGetHook("Transparency", properties.Transparency)
 			local getMasslessHook = part:AddGetHook("Massless", properties.Massless)
@@ -357,86 +353,6 @@ local function addPlayer(player)
 				changed:Disconnect()
 			end)
 		end
-
-		local function resize(part)
-			if not defaultProperties[part.Name] then
-				setup(part)
-			end
-			if Toggles.extenderToggled.Value and isActive(part) and not isIgnored() and not isSitting() and not isFFed() and not isDead() then
-				if part.Name ~= "HumanoidRootPart" then
-					part.Massless = true
-				end
-				if not Toggles.collisionsToggled.Value then
-					part.CanCollide = false
-				else
-					part.CanCollide = defaultProperties[part.Name].CanCollide
-				end
-				local size = Options.extenderSize.Value
-				part.Size = Vector3.new(size, size, size)
-				part.Transparency = Options.extenderTransparency.Value
-				if part.Name == "Head" then
-					local face = part:FindFirstChild("face")
-					if face then
-						face.Transparency = Options.extenderTransparency.Value
-					end
-				end
-			else
-				part.Massless = defaultProperties[part.Name].Massless
-				part.CanCollide = defaultProperties[part.Name].CanCollide
-				part.Size = defaultProperties[part.Name].Size
-				part.Transparency = defaultProperties[part.Name].Transparency
-				if part.Name == "Head" then
-					local face = part:FindFirstChild("face")
-					if face then
-						face.Transparency = defaultProperties["Head"].Transparency
-					end
-				end
-			end
-		end
-	else
-		-- fallback sem hooks: modifica as parts diretamente
-		local function resize(part)
-			if not Toggles.extenderToggled.Value or not isActive(part) or isIgnored() or isSitting() or isFFed() or isDead() then
-				if defaultProperties[part.Name] then
-					part.Massless = defaultProperties[part.Name].Massless
-					part.CanCollide = defaultProperties[part.Name].CanCollide
-					part.Size = defaultProperties[part.Name].Size
-					part.Transparency = defaultProperties[part.Name].Transparency
-					if part.Name == "Head" then
-						local face = part:FindFirstChild("face")
-						if face then
-							face.Transparency = defaultProperties["Head"].Transparency
-						end
-					end
-				end
-				return
-			end
-			if not defaultProperties[part.Name] then
-				defaultProperties[part.Name] = {
-					Size = part.Size,
-					Transparency = part.Transparency,
-					Massless = part.Massless,
-					CanCollide = part.CanCollide
-				}
-			end
-			if part.Name ~= "HumanoidRootPart" then
-				part.Massless = true
-			end
-			if not Toggles.collisionsToggled.Value then
-				part.CanCollide = false
-			elseif defaultProperties[part.Name] then
-				part.CanCollide = defaultProperties[part.Name].CanCollide
-			end
-			local size = Options.extenderSize.Value
-			part.Size = Vector3.new(size, size, size)
-			part.Transparency = Options.extenderTransparency.Value
-			if part.Name == "Head" then
-				local face = part:FindFirstChild("face")
-				if face then
-					face.Transparency = Options.extenderTransparency.Value
-				end
-			end
-		end
 	end
 
 	local function isActive(part)
@@ -453,7 +369,41 @@ local function addPlayer(player)
 		return false
 	end
 
-	local resetFunc
+	local function resize(part)
+		if not defaultProperties[part.Name] then
+			setup(part)
+		end
+		if Toggles.extenderToggled.Value and isActive(part) and not isIgnored() and not isSitting() and not isFFed() and not isDead() then
+			if part.Name ~= "HumanoidRootPart" then
+				part.Massless = true
+			end
+			if not Toggles.collisionsToggled.Value then
+				part.CanCollide = false
+			else
+				part.CanCollide = defaultProperties[part.Name].CanCollide
+			end
+			local size = Options.extenderSize.Value
+			part.Size = Vector3.new(size, size, size)
+			part.Transparency = Options.extenderTransparency.Value
+			if part.Name == "Head" then
+				local face = part:FindFirstChild("face")
+				if face then
+					face.Transparency = Options.extenderTransparency.Value
+				end
+			end
+		else
+			part.Massless = defaultProperties[part.Name].Massless
+			part.CanCollide = defaultProperties[part.Name].CanCollide
+			part.Size = defaultProperties[part.Name].Size
+			part.Transparency = defaultProperties[part.Name].Transparency
+			if part.Name == "Head" then
+				local face = part:FindFirstChild("face")
+				if face then
+					face.Transparency = defaultProperties["Head"].Transparency
+				end
+			end
+		end
+	end
 
 	function playerIdx:Update()
 		if not playerChar then return end
@@ -466,20 +416,14 @@ local function addPlayer(player)
 		debounce = false
 	end
 
-	resetFunc = function()
+	function playerIdx:ResetHitboxes()
 		if not playerChar then return end
-		debounce = true
 		for _, v in pairs(playerChar:GetChildren()) do
 			if v:IsA("BasePart") and defaultProperties[v.Name] then
 				v.Size = defaultProperties[v.Name].Size
 				v.Transparency = defaultProperties[v.Name].Transparency
 			end
 		end
-		debounce = false
-	end
-
-	function playerIdx:ResetHitboxes()
-		resetFunc()
 	end
 
 	-- esp
@@ -689,7 +633,7 @@ local function addPlayer(player)
 	end
 end
 
--- anti detect (agora com acesso aos defaultProperties)
+-- anti detect
 local function resetHitboxes()
 	adActive = true
 	for player, idx in pairs(players) do
@@ -732,9 +676,7 @@ local function removePlayer(player)
 end
 
 for _, player in ipairs(Players:GetPlayers()) do
-	if player == lPlayer then
-		-- pula o proprio jogador
-	else
+	if player ~= lPlayer then
 		addPlayer(player)
 	end
 end
@@ -776,9 +718,7 @@ end)
 emergencyGroupbox:AddButton("Fix Missing Players", function()
 	local found = 0
 	for _, player in ipairs(Players:GetPlayers()) do
-		if players[player] or player == lPlayer then
-			-- ja registrado
-		else
+		if not players[player] and player ~= lPlayer then
 			found = found + 1
 			addPlayer(player)
 		end
@@ -806,12 +746,14 @@ if game.PlaceId == 111311599 then
 	anticheat.Disabled = true
 end
 
--- notifica se Drawing ou Highlight nao estao disponiveis
 if not hasDrawing then
 	Library:Notify("Name ESP not available on this executor")
 end
 if not hasHighlight then
 	Library:Notify("Chams not available on this executor")
+end
+if not mtApiLoaded then
+	Library:Notify("MT-Api hooks not available (using fallback mode)")
 end
 
 GENV.XitLoaded = true
