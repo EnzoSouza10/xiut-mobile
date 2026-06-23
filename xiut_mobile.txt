@@ -2,21 +2,44 @@
 ╔═══════════════════════════════════════════╗
 ║         XIT - Hitbox Extender             ║
 ║         Creditos: iluminadomina           ║
-║         v5 - Undetectable Edition         ║
+║         v6 - Universal Edition            ║
 ╚═══════════════════════════════════════════╝
 ]]
 
-if getgenv().XitLoaded ~= nil then
+-- polyfill table.find (não existe em executores antigos/mobile)
+if not table.find then
+	table.find = function(t, value)
+		for i = 1, #t do
+			if t[i] == value then
+				return i
+			end
+		end
+		return nil
+	end
+end
+
+local env = getgenv or (function() return _G end)
+local GENV = env()
+
+if GENV.XitLoaded ~= nil then
 	return
 end
-getgenv().XitLoaded = false
+GENV.XitLoaded = false
 
 if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
 
-if not getgenv().MTAPIMutex then
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua", true))()
+-- carrega MT-Api com fallback
+local mtApiLoaded = false
+if not GENV.MTAPIMutex then
+	local success, err = pcall(loadstring, game:HttpGet("https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua", true))
+	if success then
+		err()
+		mtApiLoaded = true
+	else
+		warn("XIT: MT-Api failed to load:", err)
+	end
 end
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/RectangularObject/LinoriaLib/main/Library.lua"))()
@@ -35,9 +58,10 @@ local lPlayer = Players.LocalPlayer
 local players = {}
 local entities = {}
 local teamModule = nil
+local hasDrawing = pcall(function() local d = Drawing.new("Text"); d:Remove() end)
 
 local function updatePlayers()
-	if not getgenv().XitLoaded then return end
+	if not GENV.XitLoaded then return end
 	for _, v in pairs(players) do
 		task.spawn(function()
 			v:Update()
@@ -45,8 +69,8 @@ local function updatePlayers()
 	end
 end
 
-RunService:BindToRenderStep("furryWalls", Enum.RenderPriority.Camera.Value - 1, function()
-	if not getgenv().XitLoaded then return end
+RunService:BindToRenderStep("xitRender", Enum.RenderPriority.Camera.Value - 1, function()
+	if not GENV.XitLoaded then return end
 	Camera = Workspace.CurrentCamera
 	for _, v in pairs(players) do
 		task.spawn(function()
@@ -77,20 +101,31 @@ antiGroupbox:AddToggle("antiDetectToggled", { Text = "Anti-Detect" }):AddToolTip
 Toggles.antiDetectToggled:OnChanged(updatePlayers)
 antiGroupbox:AddSlider("adDelay", { Text = "AD Delay (s)", Min = 0.02, Max = 0.5, Default = 0.12, Rounding = 3 }):OnChanged(updatePlayers)
 
-espGroupbox:AddToggle("espNameToggled", { Text = "Name" }):AddColorPicker("espNameColor1", { Title = "Fill Color", Default = Color3.fromRGB(255, 255, 255) }):AddColorPicker("espNameColor2", { Title = "Outline Color", Default = Color3.fromRGB(0, 0, 0) })
-Toggles.espNameToggled:OnChanged(updatePlayers)
-Options.espNameColor1:OnChanged(updatePlayers)
-Options.espNameColor2:OnChanged(updatePlayers)
-espGroupbox:AddToggle("espNameUseTeamColor", { Text = "Use Team Color For Name" }):OnChanged(updatePlayers)
-espGroupbox:AddDropdown("espNameType", { Text = "Name Type", AllowNull = false, Multi = false, Values = { "Display Name", "Account Name" }, Default = "Display Name" }):OnChanged(updatePlayers)
-espGroupbox:AddToggle("espHighlightToggled", { Text = "Chams" }):AddColorPicker("espHighlightColor1", { Title = "Fill Color", Default = Color3.fromRGB(0, 0, 0) }):AddColorPicker("espHighlightColor2", { Title = "Outline Color", Default = Color3.fromRGB(0, 0, 0) })
-Toggles.espHighlightToggled:OnChanged(updatePlayers)
-Options.espHighlightColor1:OnChanged(updatePlayers)
-Options.espHighlightColor2:OnChanged(updatePlayers)
-espGroupbox:AddToggle("espHighlightUseTeamColor", { Text = "Use Team Color For Chams" }):OnChanged(updatePlayers)
-espGroupbox:AddDropdown("espHighlightDepthMode", { Text = "Chams Depth Mode", AllowNull = false, Multi = false, Values = { "Occluded", "AlwaysOnTop" }, Default = "Occluded" }):OnChanged(updatePlayers)
-espGroupbox:AddSlider("espHighlightFillTransparency", { Text = "Chams Fill Transparency", Min = 0, Max = 1, Default = 0.5, Rounding = 2 }):OnChanged(updatePlayers)
-espGroupbox:AddSlider("espHighlightOutlineTransparency", { Text = "Chams Outline Transparency", Min = 0, Max = 1, Default = 0, Rounding = 2 }):OnChanged(updatePlayers)
+if hasDrawing then
+	espGroupbox:AddToggle("espNameToggled", { Text = "Name" }):AddColorPicker("espNameColor1", { Title = "Fill Color", Default = Color3.fromRGB(255, 255, 255) }):AddColorPicker("espNameColor2", { Title = "Outline Color", Default = Color3.fromRGB(0, 0, 0) })
+	Toggles.espNameToggled:OnChanged(updatePlayers)
+	Options.espNameColor1:OnChanged(updatePlayers)
+	Options.espNameColor2:OnChanged(updatePlayers)
+	espGroupbox:AddToggle("espNameUseTeamColor", { Text = "Use Team Color For Name" }):OnChanged(updatePlayers)
+	espGroupbox:AddDropdown("espNameType", { Text = "Name Type", AllowNull = false, Multi = false, Values = { "Display Name", "Account Name" }, Default = "Display Name" }):OnChanged(updatePlayers)
+else
+	espGroupbox:AddLabel("Name (not supported on this executor)")
+end
+
+local hasHighlight = pcall(function() local h = Instance.new("Highlight"); h:Destroy() end)
+
+if hasHighlight then
+	espGroupbox:AddToggle("espHighlightToggled", { Text = "Chams" }):AddColorPicker("espHighlightColor1", { Title = "Fill Color", Default = Color3.fromRGB(0, 0, 0) }):AddColorPicker("espHighlightColor2", { Title = "Outline Color", Default = Color3.fromRGB(0, 0, 0) })
+	Toggles.espHighlightToggled:OnChanged(updatePlayers)
+	Options.espHighlightColor1:OnChanged(updatePlayers)
+	Options.espHighlightColor2:OnChanged(updatePlayers)
+	espGroupbox:AddToggle("espHighlightUseTeamColor", { Text = "Use Team Color For Chams" }):OnChanged(updatePlayers)
+	espGroupbox:AddDropdown("espHighlightDepthMode", { Text = "Chams Depth Mode", AllowNull = false, Multi = false, Values = { "Occluded", "AlwaysOnTop" }, Default = "Occluded" }):OnChanged(updatePlayers)
+	espGroupbox:AddSlider("espHighlightFillTransparency", { Text = "Chams Fill Transparency", Min = 0, Max = 1, Default = 0.5, Rounding = 2 }):OnChanged(updatePlayers)
+	espGroupbox:AddSlider("espHighlightOutlineTransparency", { Text = "Chams Outline Transparency", Min = 0, Max = 1, Default = 0, Rounding = 2 }):OnChanged(updatePlayers)
+else
+	espGroupbox:AddLabel("Chams (not supported on this executor)")
+end
 
 miscGroupbox:AddLabel("Toggle UI"):AddKeyPicker("menuKeybind", { Default = "End", NoUI = true, Text = "Menu Keybind" })
 miscGroupbox:AddLabel("Force Update"):AddKeyPicker("forceUpdateKeybind", { Default = "Home", NoUI = true, Text = "Force Update Keybind"})
@@ -129,41 +164,6 @@ end
 -- anti detect
 local adActive = false
 local UserInputService = game:GetService("UserInputService")
-
-local function resetHitboxes()
-	adActive = true
-	for _, v in pairs(players) do
-		task.spawn(function()
-			if v.Character then
-				for _, part in pairs(v.Character:GetChildren()) do
-					if part:IsA("BasePart") then
-						pcall(function() part.Size = defaultProperties[part.Name].Size end)
-						pcall(function() part.Transparency = defaultProperties[part.Name].Transparency end)
-					end
-				end
-			end
-		end)
-	end
-	task.wait(Options.adDelay.Value)
-	updatePlayers()
-	adActive = false
-end
-
-UserInputService.InputBegan:Connect(function(i, gpe)
-	if gpe then return end
-	if Toggles.antiDetectToggled.Value and not adActive and Toggles.extenderToggled.Value then
-		resetHitboxes()
-	end
-end)
-
-local function panic()
-	getgenv().XitLoaded = false
-	mainWindow:SetVisible(false)
-	task.wait(60)
-	getgenv().XitLoaded = true
-	mainWindow:SetVisible(true)
-end
-Options.panicKeybind:OnClick(panic)
 
 local function addPlayer(player)
 	table.insert(Options.ignorePlayerList.Values, player.Name)
@@ -285,75 +285,158 @@ local function addPlayer(player)
 	end
 
 	local debounce = false
-	local function setup(part)
-		defaultProperties[part.Name] = {}
-		local properties = defaultProperties[part.Name]
-		properties.Size = part.Size
-		properties.Transparency = part.Transparency
-		properties.Massless = part.Massless
-		properties.CanCollide = part.CanCollide
-		properties.CollisionGroupId = part.CollisionGroupId
-		local getSizeHook = part:AddGetHook("Size", properties.Size)
-		local getTransparencyHook = part:AddGetHook("Transparency", properties.Transparency)
-		local getMasslessHook = part:AddGetHook("Massless", properties.Massless)
-		local getCanCollideHook = part:AddGetHook("CanCollide", properties.CanCollide)
-		local setSizeHook = part:AddSetHook("Size", function(_, value)
-			properties.Size = value
-			getSizeHook:Modify("Size", properties.Size)
-			if Toggles.extenderToggled.Value then
-				local size = Options.extenderSize.Value
-				return Vector3.new(size, size, size)
+
+	if mtApiLoaded then
+		local function setup(part)
+			defaultProperties[part.Name] = {}
+			local properties = defaultProperties[part.Name]
+			properties.Size = part.Size
+			properties.Transparency = part.Transparency
+			properties.Massless = part.Massless
+			properties.CanCollide = part.CanCollide
+			properties.CollisionGroupId = part.CollisionGroupId
+			local getSizeHook = part:AddGetHook("Size", properties.Size)
+			local getTransparencyHook = part:AddGetHook("Transparency", properties.Transparency)
+			local getMasslessHook = part:AddGetHook("Massless", properties.Massless)
+			local getCanCollideHook = part:AddGetHook("CanCollide", properties.CanCollide)
+			local setSizeHook = part:AddSetHook("Size", function(_, value)
+				properties.Size = value
+				getSizeHook:Modify("Size", properties.Size)
+				if Toggles.extenderToggled.Value then
+					local size = Options.extenderSize.Value
+					return Vector3.new(size, size, size)
+				end
+				return properties.Size
+			end)
+			local setTransparencyHook = part:AddSetHook("Transparency", function(_, value)
+				properties.Transparency = value
+				getTransparencyHook:Modify("Transparency", properties.Transparency)
+				if Toggles.extenderToggled.Value then
+					return Options.extenderTransparency.Value
+				end
+				return properties.Transparency
+			end)
+			local setMasslessHook = part:AddSetHook("Massless", function(_, value)
+				properties.Massless = value
+				getMasslessHook:Modify("Massless", properties.Massless)
+				if Toggles.extenderToggled.Value then
+					if part.Name ~= "HumanoidRootPart" then
+						return true
+					end
+				end
+				return properties.Massless
+			end)
+			local setCanCollideHook = part:AddSetHook("CanCollide", function(_, value)
+				properties.CanCollide = value
+				getCanCollideHook:Modify("CanCollide", properties.CanCollide)
+				if Toggles.extenderToggled.Value and not Toggles.collisionsToggled.Value then
+					if part.Name == "Head" or part.Name == "HumanoidRootPart" then
+						return false
+					end
+				end
+				return properties.CanCollide
+			end)
+			local changed = part.Changed:Connect(function(property)
+				if debounce then return end
+				if properties[property] then
+					if properties[property] ~= part[property] then
+						properties[property] = part[property]
+					end
+					playerIdx:Update()
+				end
+			end)
+			part.Destroying:Connect(function()
+				getSizeHook:Remove()
+				getTransparencyHook:Remove()
+				getMasslessHook:Remove()
+				getCanCollideHook:Remove()
+				setSizeHook:Remove()
+				setTransparencyHook:Remove()
+				setMasslessHook:Remove()
+				setCanCollideHook:Remove()
+				changed:Disconnect()
+			end)
+		end
+
+		local function resize(part)
+			if not defaultProperties[part.Name] then
+				setup(part)
 			end
-			return properties.Size
-		end)
-		local setTransparencyHook = part:AddSetHook("Transparency", function(_, value)
-			properties.Transparency = value
-			getTransparencyHook:Modify("Transparency", properties.Transparency)
-			if Toggles.extenderToggled.Value then
-				return Options.extenderTransparency.Value
-			end
-			return properties.Transparency
-		end)
-		local setMasslessHook = part:AddSetHook("Massless", function(_, value)
-			properties.Massless = value
-			getMasslessHook:Modify("Massless", properties.Massless)
-			if Toggles.extenderToggled.Value then
+			if Toggles.extenderToggled.Value and isActive(part) and not isIgnored() and not isSitting() and not isFFed() and not isDead() then
 				if part.Name ~= "HumanoidRootPart" then
-					return true
+					part.Massless = true
+				end
+				if not Toggles.collisionsToggled.Value then
+					part.CanCollide = false
+				else
+					part.CanCollide = defaultProperties[part.Name].CanCollide
+				end
+				local size = Options.extenderSize.Value
+				part.Size = Vector3.new(size, size, size)
+				part.Transparency = Options.extenderTransparency.Value
+				if part.Name == "Head" then
+					local face = part:FindFirstChild("face")
+					if face then
+						face.Transparency = Options.extenderTransparency.Value
+					end
+				end
+			else
+				part.Massless = defaultProperties[part.Name].Massless
+				part.CanCollide = defaultProperties[part.Name].CanCollide
+				part.Size = defaultProperties[part.Name].Size
+				part.Transparency = defaultProperties[part.Name].Transparency
+				if part.Name == "Head" then
+					local face = part:FindFirstChild("face")
+					if face then
+						face.Transparency = defaultProperties["Head"].Transparency
+					end
 				end
 			end
-			return properties.Massless
-		end)
-		local setCanCollideHook = part:AddSetHook("CanCollide", function(_, value)
-			properties.CanCollide = value
-			getCanCollideHook:Modify("CanCollide", properties.CanCollide)
-			if Toggles.extenderToggled.Value and not Toggles.collisionsToggled.Value then
-				if part.Name == "Head" or part.Name == "HumanoidRootPart" then
-					return false
+		end
+	else
+		-- fallback sem hooks: modifica as parts diretamente
+		local function resize(part)
+			if not Toggles.extenderToggled.Value or not isActive(part) or isIgnored() or isSitting() or isFFed() or isDead() then
+				if defaultProperties[part.Name] then
+					part.Massless = defaultProperties[part.Name].Massless
+					part.CanCollide = defaultProperties[part.Name].CanCollide
+					part.Size = defaultProperties[part.Name].Size
+					part.Transparency = defaultProperties[part.Name].Transparency
+					if part.Name == "Head" then
+						local face = part:FindFirstChild("face")
+						if face then
+							face.Transparency = defaultProperties["Head"].Transparency
+						end
+					end
+				end
+				return
+			end
+			if not defaultProperties[part.Name] then
+				defaultProperties[part.Name] = {
+					Size = part.Size,
+					Transparency = part.Transparency,
+					Massless = part.Massless,
+					CanCollide = part.CanCollide
+				}
+			end
+			if part.Name ~= "HumanoidRootPart" then
+				part.Massless = true
+			end
+			if not Toggles.collisionsToggled.Value then
+				part.CanCollide = false
+			elseif defaultProperties[part.Name] then
+				part.CanCollide = defaultProperties[part.Name].CanCollide
+			end
+			local size = Options.extenderSize.Value
+			part.Size = Vector3.new(size, size, size)
+			part.Transparency = Options.extenderTransparency.Value
+			if part.Name == "Head" then
+				local face = part:FindFirstChild("face")
+				if face then
+					face.Transparency = Options.extenderTransparency.Value
 				end
 			end
-			return properties.CanCollide
-		end)
-		local changed = part.Changed:Connect(function(property)
-			if debounce then return end
-			if properties[property] then
-				if properties[property] ~= part[property] then
-					properties[property] = part[property]
-				end
-				playerIdx:Update()
-			end
-		end)
-		part.Destroying:Connect(function()
-			getSizeHook:Remove()
-			getTransparencyHook:Remove()
-			getMasslessHook:Remove()
-			getCanCollideHook:Remove()
-			setSizeHook:Remove()
-			setTransparencyHook:Remove()
-			setMasslessHook:Remove()
-			setCanCollideHook:Remove()
-			changed:Disconnect()
-		end)
+		end
 	end
 
 	local function isActive(part)
@@ -370,41 +453,7 @@ local function addPlayer(player)
 		return false
 	end
 
-	local function resize(part)
-		if not defaultProperties[part.Name] then
-			setup(part)
-		end
-		if Toggles.extenderToggled.Value and isActive(part) and not isIgnored() and not isSitting() and not isFFed() and not isDead() then
-			if part.Name ~= "HumanoidRootPart" then
-				part.Massless = true
-			end
-			if not Toggles.collisionsToggled.Value then
-				part.CanCollide = false
-			else
-				part.CanCollide = defaultProperties[part.Name].CanCollide
-			end
-			local size = Options.extenderSize.Value
-			part.Size = Vector3.new(size, size, size)
-			part.Transparency = Options.extenderTransparency.Value
-			if part.Name == "Head" then
-				local face = part:FindFirstChild("face")
-				if face then
-					face.Transparency = Options.extenderTransparency.Value
-				end
-			end
-		else
-			part.Massless = defaultProperties[part.Name].Massless
-			part.CanCollide = defaultProperties[part.Name].CanCollide
-			part.Size = defaultProperties[part.Name].Size
-			part.Transparency = defaultProperties[part.Name].Transparency
-			if part.Name == "Head" then
-				local face = part:FindFirstChild("face")
-				if face then
-					face.Transparency = defaultProperties["Head"].Transparency
-				end
-			end
-		end
-	end
+	local resetFunc
 
 	function playerIdx:Update()
 		if not playerChar then return end
@@ -415,6 +464,22 @@ local function addPlayer(player)
 			end
 		end
 		debounce = false
+	end
+
+	resetFunc = function()
+		if not playerChar then return end
+		debounce = true
+		for _, v in pairs(playerChar:GetChildren()) do
+			if v:IsA("BasePart") and defaultProperties[v.Name] then
+				v.Size = defaultProperties[v.Name].Size
+				v.Transparency = defaultProperties[v.Name].Transparency
+			end
+		end
+		debounce = false
+	end
+
+	function playerIdx:ResetHitboxes()
+		resetFunc()
 	end
 
 	-- esp
@@ -428,11 +493,26 @@ local function addPlayer(player)
 		end
 	end
 
-	local nameEsp = Drawing.new("Text"); nameEsp.Center = true; nameEsp.Outline = true
-	local chams = Instance.new("Highlight");chams.Parent = game:GetService("CoreGui")
+	local nameEsp
+	if hasDrawing then
+		nameEsp = Drawing.new("Text")
+		nameEsp.Center = true
+		nameEsp.Outline = true
+	end
+
+	local chams
+	if hasHighlight then
+		chams = Instance.new("Highlight")
+		chams.Parent = game:GetService("CoreGui")
+	end
+
 	function playerIdx:UpdateESP()
-		if not playerChar or isIgnored() or isDead() then nameEsp.Visible = false; chams.Enabled = false return end
-		if Toggles.espNameToggled.Value then
+		if not playerChar or isIgnored() or isDead() then
+			if nameEsp then nameEsp.Visible = false end
+			if chams then chams.Enabled = false end
+			return
+		end
+		if hasDrawing and Toggles.espNameToggled.Value then
 			local target = FindFirstChildMatching(playerChar, "Torso")
 			if target then
 				local pos, vis = WorldToViewportPoint(Camera, target.Position)
@@ -457,10 +537,10 @@ local function addPlayer(player)
 			else
 				nameEsp.Visible = false
 			end
-		else
+		elseif nameEsp then
 			nameEsp.Visible = false
 		end
-		if Toggles.espHighlightToggled.Value then
+		if hasHighlight and Toggles.espHighlightToggled.Value then
 			chams.Adornee = playerChar
 			if Toggles.espHighlightToggled.Value then
 				if Toggles.espHighlightUseTeamColor.Value then
@@ -477,14 +557,18 @@ local function addPlayer(player)
 			else
 				chams.Enabled = false
 			end
-		else
+		elseif chams then
 			chams.Enabled = false
 		end
 	end
 
 	function playerIdx:DeleteVisuals()
-		nameEsp:Remove()
-		chams:Destroy()
+		if nameEsp then
+			nameEsp:Remove()
+		end
+		if chams then
+			chams:Destroy()
+		end
 	end
 
 	local function WaitForFullChar(char)
@@ -605,19 +689,54 @@ local function addPlayer(player)
 	end
 end
 
+-- anti detect (agora com acesso aos defaultProperties)
+local function resetHitboxes()
+	adActive = true
+	for player, idx in pairs(players) do
+		task.spawn(function()
+			if idx.ResetHitboxes then
+				idx:ResetHitboxes()
+			end
+		end)
+	end
+	task.wait(Options.adDelay.Value)
+	updatePlayers()
+	adActive = false
+end
+
+UserInputService.InputBegan:Connect(function(i, gpe)
+	if gpe then return end
+	if Toggles.antiDetectToggled.Value and not adActive and Toggles.extenderToggled.Value then
+		resetHitboxes()
+	end
+end)
+
+local function panic()
+	GENV.XitLoaded = false
+	mainWindow:SetVisible(false)
+	task.wait(60)
+	GENV.XitLoaded = true
+	mainWindow:SetVisible(true)
+end
+Options.panicKeybind:OnClick(panic)
+
 local function removePlayer(player)
 	if not players[player] then return end
 	players[player]:DeleteVisuals()
-	table.remove(Options.ignorePlayerList.Values, table.find(Options.ignorePlayerList.Values, player.Name))
+	local idx = table.find(Options.ignorePlayerList.Values, player.Name)
+	if idx then
+		table.remove(Options.ignorePlayerList.Values, idx)
+	end
 	updateList(Options.ignorePlayerList)
 	players[player] = nil
 end
 
 for _, player in ipairs(Players:GetPlayers()) do
 	if player == lPlayer then
-		continue
+		-- pula o proprio jogador
+	else
+		addPlayer(player)
 	end
-	addPlayer(player)
 end
 for _, team in pairs(Teams:GetTeams()) do
 	if team:IsA("Team") then
@@ -639,7 +758,10 @@ Teams.ChildAdded:Connect(function(team)
 end)
 Teams.ChildRemoved:Connect(function(team)
 	if team:IsA("Team") then
-		table.remove(Options.ignoreTeamList.Values, table.find(Options.ignoreTeamList.Values, team.Name))
+		local idx = table.find(Options.ignoreTeamList.Values, team.Name)
+		if idx then
+			table.remove(Options.ignoreTeamList.Values, idx)
+		end
 		updateList(Options.ignoreTeamList)
 	end
 end)
@@ -654,7 +776,9 @@ end)
 emergencyGroupbox:AddButton("Fix Missing Players", function()
 	local found = 0
 	for _, player in ipairs(Players:GetPlayers()) do
-		if players[player] or player == lPlayer then continue else
+		if players[player] or player == lPlayer then
+			-- ja registrado
+		else
 			found = found + 1
 			addPlayer(player)
 		end
@@ -682,7 +806,15 @@ if game.PlaceId == 111311599 then
 	anticheat.Disabled = true
 end
 
-getgenv().XitLoaded = true
+-- notifica se Drawing ou Highlight nao estao disponiveis
+if not hasDrawing then
+	Library:Notify("Name ESP not available on this executor")
+end
+if not hasHighlight then
+	Library:Notify("Chams not available on this executor")
+end
+
+GENV.XitLoaded = true
 updatePlayers()
-Library:Notify("XIT v5 | Creditos: iluminadomina")
+Library:Notify("XIT v6 | Creditos: iluminadomina")
 Library:Notify("Press " .. Library.ToggleKeybind.Value .. " to open the menu")
