@@ -1,5 +1,21 @@
-if getgenv().XitLoaded then return end
-getgenv().XitLoaded = true
+-- Loading screen (antes de tudo pra garantir que aparece)
+spawn(function()
+	local g = Instance.new("ScreenGui")
+	g.Name = "XitLoad"
+	g.ResetOnSpawn = false
+	g.Parent = game:GetService("CoreGui")
+	local l = Instance.new("TextLabel")
+	l.Size = UDim2.new(0, 300, 0, 100)
+	l.Position = UDim2.new(0.5, -150, 0.5, -50)
+	l.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+	l.TextColor3 = Color3.fromRGB(0, 255, 100)
+	l.TextScaled = true
+	l.Text = "XIT CARREGADO"
+	l.Font = Enum.Font.GothamBold
+	l.Parent = g
+	task.wait(2)
+	g:Destroy()
+end)
 
 local ok, err = pcall(function()
 
@@ -15,12 +31,10 @@ local players = {}
 local enabled = false
 local menuAberto = false
 
-local tamanhos = {
-	Head = 10, HumanoidRootPart = 10, Torso = 10,
-	["Left Arm"] = 10, ["Right Arm"] = 10,
-	["Left Leg"] = 10, ["Right Leg"] = 10,
-	["Custom Part"] = 10
-}
+local tamanhos = {}
+for _, nome in ipairs({ "Head", "HumanoidRootPart", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg", "Custom Part" }) do
+	tamanhos[nome] = 10
+end
 local transparencia = 0.5
 local customPartName = "HeadHB"
 local ignorarSentados = false
@@ -36,6 +50,7 @@ gui.Name = "XitGUI"
 gui.ResetOnSpawn = false
 gui.Parent = game:GetService("CoreGui")
 gui.Enabled = false
+gui.DisplayOrder = 999
 
 local topBar = Instance.new("Frame")
 topBar.Size = UDim2.new(1, 0, 0, 30)
@@ -74,7 +89,6 @@ local function criarToggle(txt, default, callback)
 	btn.Font = Enum.Font.Gotham
 	btn.TextSize = 14
 	btn.Parent = scrollFrame
-
 	local estado = default
 	btn.MouseButton1Click:Connect(function()
 		estado = not estado
@@ -82,26 +96,30 @@ local function criarToggle(txt, default, callback)
 		btn.Text = txt .. (estado and " [ON]" or " [OFF]")
 		if callback then callback(estado) end
 	end)
-
 	yPos = yPos + 36
 	return { GetValue = function() return estado end }
 end
 
 local function criarLabel(txt)
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(0, 220, 0, 20)
-	label.Position = UDim2.new(0.5, -110, 0, yPos)
-	label.BackgroundTransparency = 1
-	label.TextColor3 = Color3.fromRGB(180, 180, 220)
-	label.Text = txt
-	label.Font = Enum.Font.Gotham
-	label.TextSize = 13
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.Parent = scrollFrame
+	local l = Instance.new("TextLabel")
+	l.Size = UDim2.new(0, 220, 0, 20)
+	l.Position = UDim2.new(0.5, -110, 0, yPos)
+	l.BackgroundTransparency = 1
+	l.TextColor3 = Color3.fromRGB(180, 180, 220)
+	l.Text = txt
+	l.Font = Enum.Font.Gotham
+	l.TextSize = 13
+	l.TextXAlignment = Enum.TextXAlignment.Left
+	l.Parent = scrollFrame
 	yPos = yPos + 22
 end
 
-local function criarSlider(txt, min, max, default, callback)
+local slidersData = {}
+
+local function criarSlider(txt, minVal, maxVal, defaultVal, callback)
+	local data = { dragging = false, current = defaultVal, min = minVal, max = maxVal, cb = callback, txt = txt }
+	slidersData[#slidersData + 1] = data
+
 	local bg = Instance.new("Frame")
 	bg.Size = UDim2.new(0, 220, 0, 45)
 	bg.Position = UDim2.new(0.5, -110, 0, yPos)
@@ -114,7 +132,7 @@ local function criarSlider(txt, min, max, default, callback)
 	label.Position = UDim2.new(0, 5, 0, 2)
 	label.BackgroundTransparency = 1
 	label.TextColor3 = Color3.fromRGB(180, 180, 220)
-	label.Text = txt .. ": " .. tostring(default)
+	label.Text = txt .. ": " .. tostring(defaultVal)
 	label.Font = Enum.Font.Gotham
 	label.TextSize = 12
 	label.TextXAlignment = Enum.TextXAlignment.Left
@@ -125,56 +143,69 @@ local function criarSlider(txt, min, max, default, callback)
 	barraBg.Position = UDim2.new(0, 5, 0, 22)
 	barraBg.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
 	barraBg.BorderSizePixel = 0
-	barraBg.Active = true
 	barraBg.Parent = bg
 
 	local preenchimento = Instance.new("Frame")
-	preenchimento.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+	preenchimento.Size = UDim2.new((defaultVal - minVal) / (maxVal - minVal), 0, 1, 0)
 	preenchimento.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
 	preenchimento.BorderSizePixel = 0
 	preenchimento.Parent = barraBg
 
-	local valorAtual = default
-	local dragging = false
-
-	local function atualizar(input)
+	function data:update(input)
 		local pos = math.clamp((input.Position.X - barraBg.AbsolutePosition.X) / barraBg.AbsoluteSize.X, 0, 1)
-		valorAtual = min + math.floor(pos * (max - min) + 0.5)
+		self.current = self.min + math.floor(pos * (self.max - self.min) + 0.5)
 		preenchimento.Size = UDim2.new(pos, 0, 1, 0)
-		label.Text = txt .. ": " .. tostring(valorAtual)
-		if callback then callback(valorAtual) end
+		label.Text = self.txt .. ": " .. tostring(self.current)
+		if self.cb then self.cb(self.current) end
 	end
 
-	UserInputService.InputBegan:Connect(function(input, gpe)
-		if gpe then return end
-		if dragging then return end
-		if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
-			local pos = Vector2.new(input.Position.X, input.Position.Y)
-			if barraBg.AbsolutePosition.Y <= pos.Y and pos.Y <= barraBg.AbsolutePosition.Y + barraBg.AbsoluteSize.Y then
-				if barraBg.AbsolutePosition.X - 10 <= pos.X and pos.X <= barraBg.AbsolutePosition.X + barraBg.AbsoluteSize.X + 10 then
-					dragging = true
-					atualizar(input)
-				end
-			end
-		end
-	end)
-
-	UserInputService.InputEnded:Connect(function(input, gpe)
-		if gpe then return end
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			dragging = false
-		end
-	end)
-
-	UserInputService.InputChanged:Connect(function(input)
-		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-			atualizar(input)
-		end
-	end)
+	function data:hitTest(input)
+		local p = input.Position
+		local ax, ay = barraBg.AbsolutePosition.X, barraBg.AbsolutePosition.Y
+		local sx, sy = barraBg.AbsoluteSize.X, barraBg.AbsoluteSize.Y
+		return p.Y >= ay and p.Y <= ay + sy and p.X >= ax - 10 and p.X <= ax + sx + 10
+	end
 
 	yPos = yPos + 50
-	return { GetValue = function() return valorAtual end }
+	return data
 end
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		for _, d in ipairs(slidersData) do
+			if d:hitTest(input) then
+				d.dragging = true
+				d:update(input)
+				break
+			end
+		end
+	end
+	if input.KeyCode == Enum.KeyCode.Insert then
+		menuAberto = not menuAberto
+		gui.Enabled = menuAberto
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gpe)
+	if gpe then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		for _, d in ipairs(slidersData) do
+			d.dragging = false
+		end
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		for _, d in ipairs(slidersData) do
+			if d.dragging then
+				d:update(input)
+				break
+			end
+		end
+	end
+end)
 
 local toggleHBE = criarToggle("HBE Ativo", false, function(v) enabled = v end)
 local toggleESP = criarToggle("Nome ESP", true, function(v) nomesVisiveis = v end)
@@ -193,7 +224,6 @@ for _, nome in ipairs(listaPartes) do
 	btn.Font = Enum.Font.Gotham
 	btn.TextSize = 12
 	btn.Parent = scrollFrame
-
 	local estado = ativo
 	btn.MouseButton1Click:Connect(function()
 		estado = not estado
@@ -206,10 +236,8 @@ end
 yPos = yPos + 5
 criarLabel("Tamanhos Individuais:")
 
-local slidersTamanho = {}
 for _, nome in ipairs(listaPartes) do
-	local slider = criarSlider(nome, 1, 100, tamanhos[nome], function(v) tamanhos[nome] = v end)
-	slidersTamanho[nome] = slider
+	criarSlider(nome, 1, 100, tamanhos[nome], function(v) tamanhos[nome] = v end)
 end
 
 criarSlider("Transparencia", 0, 100, 50, function(v) transparencia = v / 100 end)
@@ -232,26 +260,26 @@ customInput.FocusLost:Connect(function()
 end)
 yPos = yPos + 35
 
-local toggleSentados = criarToggle("Ignorar Sentados", false, function(v) ignorarSentados = v end)
-local toggleFF = criarToggle("Ignorar ForceField", false, function(v) ignorarFF = v end)
+criarToggle("Ignorar Sentados", false, function(v) ignorarSentados = v end)
+criarToggle("Ignorar ForceField", false, function(v) ignorarFF = v end)
 
 scrollFrame.CanvasSize = UDim2.new(0, 0, 0, yPos + 20)
 
--- Funcoes principais
+-- Hitbox logic
 
 local function parteAtiva(partName)
 	for _, nome in ipairs(listaPartes) do
 		local t = togglePartes[nome]
 		if t and t.GetValue() then
-			local match = false
-			if string.match(partName, nome) then match = true
-			elseif nome == "Custom Part" and string.match(partName, customPartName) then match = true
-			elseif nome == "Left Arm" and string.match(partName, "Left") and (string.match(partName, "Arm") or string.match(partName, "Hand")) then match = true
-			elseif nome == "Right Arm" and string.match(partName, "Right") and (string.match(partName, "Arm") or string.match(partName, "Hand")) then match = true
-			elseif nome == "Left Leg" and string.match(partName, "Left") and (string.match(partName, "Leg") or string.match(partName, "Foot")) then match = true
-			elseif nome == "Right Leg" and string.match(partName, "Right") and (string.match(partName, "Leg") or string.match(partName, "Foot")) then match = true
+			local m = false
+			if string.match(partName, nome) then m = true
+			elseif nome == "Custom Part" and string.match(partName, customPartName) then m = true
+			elseif nome == "Left Arm" and string.match(partName, "Left") and (string.match(partName, "Arm") or string.match(partName, "Hand")) then m = true
+			elseif nome == "Right Arm" and string.match(partName, "Right") and (string.match(partName, "Arm") or string.match(partName, "Hand")) then m = true
+			elseif nome == "Left Leg" and string.match(partName, "Left") and (string.match(partName, "Leg") or string.match(partName, "Foot")) then m = true
+			elseif nome == "Right Leg" and string.match(partName, "Right") and (string.match(partName, "Leg") or string.match(partName, "Foot")) then m = true
 			end
-			if match then return true end
+			if m then return true end
 		end
 	end
 	return false
@@ -261,15 +289,15 @@ local function getTamanho(partName)
 	for _, nome in ipairs(listaPartes) do
 		local t = togglePartes[nome]
 		if t and t.GetValue() then
-			local match = false
-			if string.match(partName, nome) then match = true
-			elseif nome == "Custom Part" and string.match(partName, customPartName) then match = true
-			elseif nome == "Left Arm" and string.match(partName, "Left") and (string.match(partName, "Arm") or string.match(partName, "Hand")) then match = true
-			elseif nome == "Right Arm" and string.match(partName, "Right") and (string.match(partName, "Arm") or string.match(partName, "Hand")) then match = true
-			elseif nome == "Left Leg" and string.match(partName, "Left") and (string.match(partName, "Leg") or string.match(partName, "Foot")) then match = true
-			elseif nome == "Right Leg" and string.match(partName, "Right") and (string.match(partName, "Leg") or string.match(partName, "Foot")) then match = true
+			local m = false
+			if string.match(partName, nome) then m = true
+			elseif nome == "Custom Part" and string.match(partName, customPartName) then m = true
+			elseif nome == "Left Arm" and string.match(partName, "Left") and (string.match(partName, "Arm") or string.match(partName, "Hand")) then m = true
+			elseif nome == "Right Arm" and string.match(partName, "Right") and (string.match(partName, "Arm") or string.match(partName, "Hand")) then m = true
+			elseif nome == "Left Leg" and string.match(partName, "Left") and (string.match(partName, "Leg") or string.match(partName, "Foot")) then m = true
+			elseif nome == "Right Leg" and string.match(partName, "Right") and (string.match(partName, "Leg") or string.match(partName, "Foot")) then m = true
 			end
-			if match then return tamanhos[nome] end
+			if m then return tamanhos[nome] end
 		end
 	end
 	return nil
@@ -278,13 +306,13 @@ end
 local function isDead(char)
 	if not char then return true end
 	local h = char:FindFirstChildWhichIsA("Humanoid")
-	return h and h.Health <= 0
+	return h ~= nil and h.Health <= 0
 end
 
 local function isSitting(char)
 	if not ignorarSentados then return false end
 	local h = char:FindFirstChildWhichIsA("Humanoid")
-	return h and h.Sit == true
+	return h ~= nil and h.Sit == true
 end
 
 local function isFFed(char)
@@ -310,16 +338,11 @@ local function addPlayer(player)
 	chams.Parent = game:GetService("CoreGui")
 
 	local function resize(char)
-		if not char then return end
+		if char == nil then return end
 		for _, v in pairs(char:GetChildren()) do
 			if v:IsA("BasePart") then
-				if not defaultProps[v.Name] then
-					defaultProps[v.Name] = {
-						Size = v.Size,
-						Transparency = v.Transparency,
-						Massless = v.Massless,
-						CanCollide = v.CanCollide
-					}
+				if defaultProps[v.Name] == nil then
+					defaultProps[v.Name] = { Size = v.Size, Transparency = v.Transparency, Massless = v.Massless, CanCollide = v.CanCollide }
 				end
 				if enabled and parteAtiva(v.Name) and not isDead(char) and not isSitting(char) and not isFFed(char) then
 					local tam = getTamanho(v.Name) or 10
@@ -332,15 +355,15 @@ local function addPlayer(player)
 						if face then face.Transparency = transparencia end
 					end
 				else
-					local props = defaultProps[v.Name]
-					if props then
-						v.Size = props.Size
-						v.Transparency = props.Transparency
-						v.Massless = props.Massless
-						v.CanCollide = props.CanCollide
+					local p = defaultProps[v.Name]
+					if p then
+						v.Size = p.Size
+						v.Transparency = p.Transparency
+						v.Massless = p.Massless
+						v.CanCollide = p.CanCollide
 						if v.Name == "Head" then
 							local face = v:FindFirstChild("face")
-							if face then face.Transparency = props.Transparency end
+							if face then face.Transparency = p.Transparency end
 						end
 					end
 				end
@@ -354,7 +377,7 @@ local function addPlayer(player)
 
 	function idx:UpdateESP()
 		Camera = Workspace.CurrentCamera
-		if not char or isDead(char) then
+		if char == nil or isDead(char) then
 			nameEsp.Visible = false
 			chams.Enabled = false
 			return
@@ -433,46 +456,31 @@ RunService:BindToRenderStep("XitHBE", Enum.RenderPriority.Camera.Value - 1, func
 	end
 end)
 
-UserInputService.InputBegan:Connect(function(input, gpe)
-	if gpe then return end
-	if input.KeyCode == Enum.KeyCode.Insert then
-		menuAberto = not menuAberto
-		gui.Enabled = menuAberto
-	end
-end)
-
--- Carregamento inicial
-local loadGui = Instance.new("ScreenGui")
-loadGui.Name = "XitLoad"
-loadGui.ResetOnSpawn = false
-loadGui.Parent = game:GetService("CoreGui")
-local loadLabel = Instance.new("TextLabel")
-loadLabel.Size = UDim2.new(0, 300, 0, 100)
-loadLabel.Position = UDim2.new(0.5, -150, 0.5, -50)
-loadLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
-loadLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-loadLabel.TextScaled = true
-loadLabel.Text = "XIT CARREGADO"
-loadLabel.Font = Enum.Font.GothamBold
-loadLabel.Parent = loadGui
-task.wait(2)
-loadGui:Destroy()
-
 end) -- pcall
 
 if not ok then
 	warn("XIT ERRO:", err)
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "XitError"
-	gui.ResetOnSpawn = false
-	gui.Parent = game:GetService("CoreGui")
+	local g = Instance.new("ScreenGui")
+	g.Name = "XitError"
+	g.ResetOnSpawn = false
+	g.Parent = game:GetService("CoreGui")
+	g.DisplayOrder = 9999
 	local l = Instance.new("TextLabel")
-	l.Size = UDim2.new(0, 400, 0, 100)
-	l.Position = UDim2.new(0.5, -200, 0.5, -50)
+	l.Size = UDim2.new(0, 500, 0, 200)
+	l.Position = UDim2.new(0.5, -250, 0.5, -100)
 	l.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 	l.TextColor3 = Color3.fromRGB(255, 50, 50)
 	l.TextScaled = true
-	l.Text = "XIT ERRO: " .. tostring(err)
+	l.TextWrapped = true
+	l.Text = "XIT ERRO:\n" .. tostring(err)
 	l.Font = Enum.Font.SourceSans
-	l.Parent = gui
+	l.Parent = g
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(0, 100, 0, 30)
+	b.Position = UDim2.new(0.5, -50, 1, -40)
+	b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	b.TextColor3 = Color3.fromRGB(255, 255, 255)
+	b.Text = "OK"
+	b.Parent = g
+	b.MouseButton1Click:Connect(function() g:Destroy() end)
 end
