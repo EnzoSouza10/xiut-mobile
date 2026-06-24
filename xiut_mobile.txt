@@ -1,31 +1,24 @@
--- XIT HBE v7.4
-print("XIT: Script iniciado")
-local ok, err = pcall(function()
-
-print("XIT: Dentro do pcall")
+-- XIT HBE v7.6
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local lPlayer = Players.LocalPlayer
 local players = {}
-local enabled = true -- auto enable
-local menuOpen = true -- auto show
-
-local tamanhos = {}
-for _, n in ipairs({ "Head", "HumanoidRootPart", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg", "Custom" }) do
-	tamanhos[n] = 10
-end
+local enabled = false
+local menuOpen = true
+local globalSize = 10
 local transp = 0.5
-local customPart = "HeadHB"
+
+local perPartSize = {}
+local partes = { "Head", "HumanoidRootPart", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg", "Custom" }
+for _, n in ipairs(partes) do perPartSize[n] = 10 end
 
 local togglePartes = {}
-local partes = { "Head", "HumanoidRootPart", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg", "Custom" }
-for _, n in ipairs(partes) do
-	togglePartes[n] = (n == "HumanoidRootPart" or n == "Head" or n == "Torso")
-end
+for _, n in ipairs(partes) do togglePartes[n] = (n == "HumanoidRootPart" or n == "Head" or n == "Torso") end
 
-print("XIT: Criando GUI")
+local customPart = "HeadHB"
+
 local gui = Instance.new("ScreenGui")
 gui.Name = "XitGUI"
 gui.ResetOnSpawn = false
@@ -34,8 +27,8 @@ gui.Enabled = true
 gui.DisplayOrder = 9999
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 260, 0, 400)
-frame.Position = UDim2.new(0.5, -130, 0.5, -200)
+frame.Size = UDim2.new(0, 280, 0, 520)
+frame.Position = UDim2.new(0.5, -140, 0.5, -260)
 frame.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
 frame.BorderSizePixel = 0
 frame.Active = true
@@ -46,178 +39,193 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 28)
 title.BackgroundColor3 = Color3.fromRGB(45, 45, 65)
 title.TextColor3 = Color3.fromRGB(150, 150, 255)
-title.Text = "XIT HBE"
+title.Text = "XIT HBE v7.6"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 16
 title.Parent = frame
 
-local y = 35
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, 0, 1, -28)
+scroll.Position = UDim2.new(0, 0, 0, 28)
+scroll.BackgroundTransparency = 1
+scroll.BorderSizePixel = 0
+scroll.ScrollBarThickness = 5
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.Parent = frame
 
-local function addBtn(txt, cb)
-	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(0, 240, 0, 26)
-	b.Position = UDim2.new(0.5, -120, 0, y)
-	b.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-	b.TextColor3 = Color3.fromRGB(200, 200, 255)
-	b.Text = txt
-	b.Font = Enum.Font.Gotham
-	b.TextSize = 13
-	b.Parent = frame
-	y = y + 30
-	if cb then b.MouseButton1Click:Connect(cb) end
-	return b
-end
+local y = 5
+local W = 260
 
-local function addLabel(txt)
+local function label(txt, s)
 	local l = Instance.new("TextLabel")
-	l.Size = UDim2.new(0, 240, 0, 20)
-	l.Position = UDim2.new(0.5, -120, 0, y)
+	l.Size = UDim2.new(0, W, 0, s or 20)
+	l.Position = UDim2.new(0.5, -W/2, 0, y)
 	l.BackgroundTransparency = 1
 	l.TextColor3 = Color3.fromRGB(180, 180, 220)
 	l.Text = txt
 	l.Font = Enum.Font.Gotham
 	l.TextSize = 12
 	l.TextXAlignment = Enum.TextXAlignment.Left
-	l.Parent = frame
-	y = y + 22
+	l.Parent = scroll
+	y = y + (s or 20) + 2
 end
 
-local function addToggle(txt, def)
+local function toggle(txt, def, cb)
 	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(0, 240, 0, 24)
-	b.Position = UDim2.new(0.5, -120, 0, y)
+	b.Size = UDim2.new(0, W, 0, 24)
+	b.Position = UDim2.new(0.5, -W/2, 0, y)
 	b.BackgroundColor3 = def and Color3.fromRGB(60, 140, 60) or Color3.fromRGB(80, 50, 50)
 	b.TextColor3 = Color3.fromRGB(200, 200, 255)
 	b.Text = txt .. (def and " [ON]" or " [OFF]")
 	b.Font = Enum.Font.Gotham
 	b.TextSize = 13
-	b.Parent = frame
+	b.Parent = scroll
 	local state = def
 	b.MouseButton1Click:Connect(function()
 		state = not state
 		b.BackgroundColor3 = state and Color3.fromRGB(60, 140, 60) or Color3.fromRGB(80, 50, 50)
 		b.Text = txt .. (state and " [ON]" or " [OFF]")
-		if txt == "HBE Ativo" then enabled = state end
+		if cb then cb(state) end
 	end)
 	y = y + 28
-	if txt == "HBE Ativo" then return function() return enabled end end
 	return function() return state end
 end
 
-local toggleHBE = addToggle("HBE Ativo", true)
-addLabel("Partes:")
+local function inputBox(txt, default, cb)
+	label(txt, 16)
+	local bg = Instance.new("Frame")
+	bg.Size = UDim2.new(0, W, 0, 24)
+	bg.Position = UDim2.new(0.5, -W/2, 0, y)
+	bg.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	bg.BorderSizePixel = 0
+	bg.Parent = scroll
+	local i = Instance.new("TextBox")
+	i.Size = UDim2.new(1, -6, 1, -4)
+	i.Position = UDim2.new(0, 3, 0, 2)
+	i.BackgroundTransparency = 1
+	i.TextColor3 = Color3.fromRGB(200, 200, 255)
+	i.Text = tostring(default)
+	i.Font = Enum.Font.Gotham
+	i.TextSize = 13
+	i.ClearTextOnFocus = false
+	i.Parent = bg
+	i.FocusLost:Connect(function()
+		local v = tonumber(i.Text)
+		if v then i.Text = tostring(v); if cb then cb(v) end
+		else i.Text = tostring(default) end
+	end)
+	y = y + 28
+	return i
+end
 
-local parteBtns = {}
-for _, n in ipairs(partes) do
-	local idx = 0
-	for i, p in ipairs(partes) do if p == n then idx = i break end end
-	local col = (idx - 1) % 2
-	local row = math.floor((idx - 1) / 2)
+-- ==== MASTER CONTROLS ====
+label("--- CONTROLES ---", 18)
+
+local hbeToggle = toggle("HBE Ativo", false, function(v)
+	enabled = v
+	for _, idx in pairs(players) do
+		task.spawn(function() if idx.Update then idx:Update() end end)
+	end
+end)
+
+local globalSizeInput = inputBox("Tamanho Global (todas as partes):", globalSize, function(v)
+	globalSize = math.clamp(v, 1, 100)
+end)
+
+local transpInput = inputBox("Transparencia (0-1):", transp, function(v)
+	transp = math.clamp(v, 0, 1)
+end)
+
+-- ==== PART SELECTION ====
+label("--- PARTES ATIVAS ---", 18)
+
+local rowY = y
+for i, n in ipairs(partes) do
+	local col = (i - 1) % 2
+	local row = math.floor((i - 1) / 2)
 	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(0, 116, 0, 22)
-	b.Position = UDim2.new(col == 0 and 0.04 or 0.52, 0, 0, y + row * 26)
+	b.Size = UDim2.new(0, 125, 0, 22)
+	b.Position = UDim2.new(col == 0 and 0.03 or 0.52, 0, 0, rowY + row * 26)
 	b.BackgroundColor3 = togglePartes[n] and Color3.fromRGB(60, 120, 200) or Color3.fromRGB(40, 40, 55)
 	b.TextColor3 = Color3.fromRGB(200, 200, 255)
 	b.Text = n
 	b.Font = Enum.Font.Gotham
 	b.TextSize = 11
-	b.Parent = frame
+	b.Parent = scroll
 	b.MouseButton1Click:Connect(function()
 		togglePartes[n] = not togglePartes[n]
 		b.BackgroundColor3 = togglePartes[n] and Color3.fromRGB(60, 120, 200) or Color3.fromRGB(40, 40, 55)
 	end)
-	parteBtns[n] = b
 end
-y = y + math.ceil(#partes / 2) * 26 + 5
+y = rowY + math.ceil(#partes / 2) * 26 + 5
 
-addLabel("Tamanhos (1-100):")
+-- ==== PER-PART SIZES ====
+label("--- TAMANHOS INDIVIDUAIS ---", 18)
+label("(deixe 0 para usar o tamanho global)", 16)
+
 for _, n in ipairs(partes) do
 	local bg = Instance.new("Frame")
-	bg.Size = UDim2.new(0, 240, 0, 28)
-	bg.Position = UDim2.new(0.5, -120, 0, y)
+	bg.Size = UDim2.new(0, W, 0, 22)
+	bg.Position = UDim2.new(0.5, -W/2, 0, y)
 	bg.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 	bg.BorderSizePixel = 0
-	bg.Parent = frame
+	bg.Parent = scroll
 	local l = Instance.new("TextLabel")
-	l.Size = UDim2.new(0, 100, 1, 0)
+	l.Size = UDim2.new(0, 120, 1, 0)
 	l.BackgroundTransparency = 1
 	l.TextColor3 = Color3.fromRGB(180, 180, 220)
-	l.Text = n .. ":" .. tamanhos[n]
+	l.Text = n
 	l.Font = Enum.Font.Gotham
 	l.TextSize = 11
 	l.TextXAlignment = Enum.TextXAlignment.Left
 	l.Parent = bg
-	local input = Instance.new("TextBox")
-	input.Size = UDim2.new(0, 50, 0, 22)
-	input.Position = UDim2.new(1, -55, 0.5, -11)
-	input.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-	input.TextColor3 = Color3.fromRGB(200, 200, 255)
-	input.Text = tostring(tamanhos[n])
-	input.Font = Enum.Font.Gotham
-	input.TextSize = 12
-	input.ClearTextOnFocus = false
-	input.Parent = bg
-	input.FocusLost:Connect(function()
-		local v = tonumber(input.Text)
-		if v then tamanhos[n] = math.clamp(v, 1, 100) input.Text = tostring(tamanhos[n]) l.Text = n .. ":" .. tamanhos[n]
-		else input.Text = tostring(tamanhos[n]) end
+	local inp = Instance.new("TextBox")
+	inp.Size = UDim2.new(0, 50, 0, 20)
+	inp.Position = UDim2.new(1, -55, 0.5, -10)
+	inp.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+	inp.TextColor3 = Color3.fromRGB(200, 200, 255)
+	inp.Text = tostring(perPartSize[n])
+	inp.Font = Enum.Font.Gotham
+	inp.TextSize = 12
+	inp.ClearTextOnFocus = false
+	inp.Parent = bg
+	inp.FocusLost:Connect(function()
+		local v = tonumber(inp.Text)
+		if v then perPartSize[n] = math.clamp(v, 0, 100) inp.Text = tostring(perPartSize[n])
+		else inp.Text = tostring(perPartSize[n]) end
 	end)
-	y = y + 32
+	y = y + 24
 end
 
-local bgT = Instance.new("Frame")
-bgT.Size = UDim2.new(0, 240, 0, 28)
-bgT.Position = UDim2.new(0.5, -120, 0, y)
-bgT.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-bgT.BorderSizePixel = 0
-bgT.Parent = frame
-local lT = Instance.new("TextLabel")
-lT.Size = UDim2.new(0, 100, 1, 0)
-lT.BackgroundTransparency = 1
-lT.TextColor3 = Color3.fromRGB(180, 180, 220)
-lT.Text = "Transp:" .. transp
-lT.Font = Enum.Font.Gotham
-lT.TextSize = 11
-lT.TextXAlignment = Enum.TextXAlignment.Left
-lT.Parent = bgT
-local iT = Instance.new("TextBox")
-iT.Size = UDim2.new(0, 50, 0, 22)
-iT.Position = UDim2.new(1, -55, 0.5, -11)
-iT.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-iT.TextColor3 = Color3.fromRGB(200, 200, 255)
-iT.Text = tostring(transp)
-iT.Font = Enum.Font.Gotham
-iT.TextSize = 12
-iT.ClearTextOnFocus = false
-iT.Parent = bgT
-iT.FocusLost:Connect(function()
-	local v = tonumber(iT.Text)
-	if v then transp = math.clamp(v, 0, 1) iT.Text = tostring(transp) lT.Text = "Transp:" .. transp
-	else iT.Text = tostring(transp) end
-end)
-y = y + 35
-
-addLabel("Custom Part:")
-local cInput = Instance.new("TextBox")
-cInput.Size = UDim2.new(0, 240, 0, 24)
-cInput.Position = UDim2.new(0.5, -120, 0, y)
-cInput.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-cInput.TextColor3 = Color3.fromRGB(200, 200, 255)
-cInput.Text = customPart
-cInput.Font = Enum.Font.Gotham
-cInput.TextSize = 13
-cInput.ClearTextOnFocus = false
-cInput.Parent = frame
-cInput.FocusLost:Connect(function() customPart = cInput.Text end)
+-- ==== CUSTOM PART ====
+label("--- PARTE PERSONALIZADA ---", 18)
+local custBg = Instance.new("Frame")
+custBg.Size = UDim2.new(0, W, 0, 24)
+custBg.Position = UDim2.new(0.5, -W/2, 0, y)
+custBg.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+custBg.BorderSizePixel = 0
+custBg.Parent = scroll
+local cInp = Instance.new("TextBox")
+cInp.Size = UDim2.new(1, -6, 1, -4)
+cInp.Position = UDim2.new(0, 3, 0, 2)
+cInp.BackgroundTransparency = 1
+cInp.TextColor3 = Color3.fromRGB(200, 200, 255)
+cInp.Text = customPart
+cInp.Font = Enum.Font.Gotham
+cInp.TextSize = 13
+cInp.ClearTextOnFocus = false
+cInp.Parent = custBg
+cInp.FocusLost:Connect(function() customPart = cInp.Text end)
 y = y + 30
 
-addToggle("Ignorar Sentados", false)
-addToggle("Ignorar ForceField", false)
+-- ==== IGNORES ====
+label("--- IGNORAR ---", 18)
+toggle("Ignorar Sentados", false)
+toggle("Ignorar ForceField", false)
 
-frame.Size = UDim2.new(0, 260, 0, y + 10)
+scroll.CanvasSize = UDim2.new(0, 0, 0, y + 10)
 
-print("XIT: GUI criada, iniciando HBE")
-
+-- ==== HBE LOGIC ====
 local function parteAtiva(nome)
 	for _, p in ipairs(partes) do
 		if togglePartes[p] then
@@ -246,10 +254,14 @@ local function getTam(nome)
 			elseif p == "Left Leg" and string.match(nome, "Left") and (string.match(nome, "Leg") or string.match(nome, "Foot")) then m = true
 			elseif p == "Right Leg" and string.match(nome, "Right") and (string.match(nome, "Leg") or string.match(nome, "Foot")) then m = true
 			end
-			if m then return tamanhos[p] end
+			if m then
+				local v = perPartSize[p]
+				if v and v > 0 then return v end
+				return globalSize
+			end
 		end
 	end
-	return nil
+	return globalSize
 end
 
 local function addPlayer(plr)
@@ -258,28 +270,36 @@ local function addPlayer(plr)
 	local idx = players[plr]
 	local char = plr.Character
 	local defs = {}
-	local function resize(c)
+
+	local function resize(c, apply)
 		if not c then return end
 		for _, v in pairs(c:GetChildren()) do
 			if v:IsA("BasePart") then
 				if not defs[v.Name] then
-					defs[v.Name] = { Size = v.Size, Transparency = v.Transparency }
+					defs[v.Name] = { Size = v.Size, Transparency = v.Transparency, Massless = v.Massless, CanCollide = v.CanCollide }
 				end
-				if enabled and parteAtiva(v.Name) then
-					local tam = getTam(v.Name) or 10
+				if apply and parteAtiva(v.Name) then
+					local tam = getTam(v.Name)
 					v.Size = Vector3.new(tam, tam, tam)
 					v.Transparency = transp
-				else
+					if v.Name ~= "HumanoidRootPart" then v.Massless = true end
+					v.CanCollide = false
+				elseif not apply then
 					local d = defs[v.Name]
-					if d then v.Size = d.Size; v.Transparency = d.Transparency end
+					if d then
+						v.Size = d.Size; v.Transparency = d.Transparency
+						v.Massless = d.Massless; v.CanCollide = d.CanCollide
+					end
 				end
 			end
 		end
 	end
-	function idx:Update() resize(char) end
+
+	function idx:Update() resize(char, enabled) end
 	function idx:DeleteVisuals() end
-	if char then task.wait(0.3) idx:Update() end
-	plr.CharacterAdded:Connect(function(c) char = c; defs = {}; task.wait(0.3); idx:Update() end)
+
+	if char then task.wait(0.3) resize(char, enabled) end
+	plr.CharacterAdded:Connect(function(c) char = c; defs = {}; task.wait(0.3) resize(char, enabled) end)
 	plr.CharacterRemoving:Connect(function() char = nil; defs = {} end)
 end
 
@@ -288,11 +308,17 @@ Players.PlayerAdded:Connect(addPlayer)
 Players.PlayerRemoving:Connect(function(p) if players[p] then players[p] = nil end end)
 
 RunService:BindToRenderStep("XitHBE", Enum.RenderPriority.Camera.Value - 1, function()
-	if not enabled then return end
 	for _, idx in pairs(players) do
-		task.spawn(function() idx:Update() end)
+		task.spawn(function() if idx.Update then idx:Update() end end)
 	end
 end)
+
+local function panic()
+	enabled = false
+	for _, idx in pairs(players) do
+		task.spawn(function() if idx.Update then idx:Update() end end)
+	end
+end
 
 UserInputService.InputBegan:Connect(function(input, gpe)
 	if gpe then return end
@@ -300,35 +326,7 @@ UserInputService.InputBegan:Connect(function(input, gpe)
 		menuOpen = not menuOpen
 		gui.Enabled = menuOpen
 	end
+	if input.KeyCode == Enum.KeyCode.Delete then
+		panic()
+	end
 end)
-
-print("XIT: Carregado com sucesso!")
-
-end) -- pcall
-
-if not ok then
-	warn("XIT ERRO:", err)
-	local g = Instance.new("ScreenGui")
-	g.Name = "XitError"
-	g.ResetOnSpawn = false
-	g.Parent = game:GetService("CoreGui")
-	g.DisplayOrder = 9999
-	local l = Instance.new("TextLabel")
-	l.Size = UDim2.new(0, 500, 0, 200)
-	l.Position = UDim2.new(0.5, -250, 0.5, -100)
-	l.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	l.TextColor3 = Color3.fromRGB(255, 50, 50)
-	l.TextScaled = true
-	l.TextWrapped = true
-	l.Text = "XIT ERRO:\n" .. tostring(err)
-	l.Font = Enum.Font.SourceSans
-	l.Parent = g
-	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(0, 100, 0, 30)
-	b.Position = UDim2.new(0.5, -50, 1, -40)
-	b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-	b.TextColor3 = Color3.fromRGB(255, 255, 255)
-	b.Text = "OK"
-	b.Parent = g
-	b.MouseButton1Click:Connect(function() g:Destroy() end)
-end
