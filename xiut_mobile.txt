@@ -1,224 +1,691 @@
---[[
-╔═══════════════════════════════════════════╗
-║         XIT - Hitbox Extender             ║
-║         Creditos: iluminadomina           ║
-║         v6 - Standalone Edition           ║
-╚═══════════════════════════════════════════╝
-]]
-
-local ok, err = pcall(function()
-
-if getgenv().XitLoaded then
+if getgenv().XitLoaded ~= nil then
 	return
 end
-getgenv().XitLoaded = true
+getgenv().XitLoaded = false
 
 if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-local UserInputService = game:GetService("UserInputService")
-local Camera = Workspace.CurrentCamera
-local lPlayer = Players.LocalPlayer
-local players = {}
-local enabled = false
-local hitboxSize = 10
-local hitboxTransp = 0.5
-
--- UI
-local gui = Instance.new("ScreenGui")
-gui.Name = "XitGUI"
-gui.ResetOnSpawn = false
-gui.Parent = game:GetService("CoreGui")
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 250, 0, 180)
-frame.Position = UDim2.new(0.5, -125, 0.5, -90)
-frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-frame.Parent = gui
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Text = "XIT - Hitbox Extender"
-title.Font = Enum.Font.GothamBold
-title.TextSize = 16
-title.Parent = frame
-
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 200, 0, 35)
-toggleBtn.Position = UDim2.new(0.5, -100, 0, 40)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
-toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleBtn.Text = "Enabled"
-toggleBtn.Font = Enum.Font.Gotham
-toggleBtn.TextSize = 14
-toggleBtn.Parent = frame
-
-local sizeSlider = Instance.new("TextBox")
-sizeSlider.Size = UDim2.new(0, 200, 0, 30)
-sizeSlider.Position = UDim2.new(0.5, -100, 0, 85)
-sizeSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-sizeSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
-sizeSlider.PlaceholderText = "Size (2-50): " .. hitboxSize
-sizeSlider.Text = ""
-sizeSlider.Font = Enum.Font.Gotham
-sizeSlider.TextSize = 14
-sizeSlider.ClearTextOnFocus = false
-sizeSlider.Parent = frame
-
-local transpSlider = Instance.new("TextBox")
-transpSlider.Size = UDim2.new(0, 200, 0, 30)
-transpSlider.Position = UDim2.new(0.5, -100, 0, 122)
-transpSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-transpSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
-transpSlider.PlaceholderText = "Transparency (0-1): " .. hitboxTransp
-transpSlider.Text = ""
-transpSlider.Font = Enum.Font.Gotham
-transpSlider.TextSize = 14
-transpSlider.ClearTextOnFocus = false
-transpSlider.Parent = frame
-
-toggleBtn.MouseButton1Click:Connect(function()
-	enabled = not enabled
-	toggleBtn.BackgroundColor3 = enabled and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(180, 60, 60)
-	toggleBtn.Text = enabled and "Enabled" or "Disabled"
-	updatePlayers()
-end)
-
-sizeSlider.FocusLost:Connect(function()
-	local val = tonumber(sizeSlider.Text)
-	if val then
-		hitboxSize = math.clamp(val, 2, 50)
+local ok, err = pcall(function()
+	if not getgenv().MTAPIMutex then
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua", true))()
 	end
-	sizeSlider.PlaceholderText = "Size (2-50): " .. hitboxSize
-	sizeSlider.Text = ""
-	updatePlayers()
-end)
+	local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/RectangularObject/LinoriaLib/main/Library.lua"))()
+	local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/RectangularObject/LinoriaLib/main/addons/SaveManager.lua"))()
+	SaveManager:SetLibrary(Library)
+	SaveManager:SetFolder("XIT_HBE")
 
-transpSlider.FocusLost:Connect(function()
-	local val = tonumber(transpSlider.Text)
-	if val then
-		hitboxTransp = math.clamp(val, 0, 1)
+	local Teams = game:GetService("Teams")
+	local Players = game:GetService("Players")
+	local RunService = game:GetService("RunService")
+	local Workspace = game:GetService("Workspace")
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	local Camera = Workspace.CurrentCamera
+	local WorldToViewportPoint = Camera.WorldToViewportPoint
+	local lPlayer = Players.LocalPlayer
+	local players = {}
+	local entities = {}
+	local teamModule = nil
+
+	local function updatePlayers()
+		if not getgenv().XitLoaded then return end
+		for _, v in pairs(players) do
+			task.spawn(function()
+				v:Update()
+			end)
+		end
 	end
-	transpSlider.PlaceholderText = "Transparency (0-1): " .. hitboxTransp
-	transpSlider.Text = ""
-	updatePlayers()
-end)
 
--- toggle UI com Insert
-UserInputService.InputBegan:Connect(function(input, gpe)
-	if gpe then return end
-	if input.KeyCode == Enum.KeyCode.Insert then
-		gui.Enabled = not gui.Enabled
+	RunService:BindToRenderStep("XitHBE", Enum.RenderPriority.Camera.Value - 1, function()
+		if not getgenv().XitLoaded then return end
+		Camera = Workspace.CurrentCamera
+		for _, v in pairs(players) do
+			task.spawn(function()
+				v:UpdateESP()
+			end)
+		end
+	end)
+
+	local mainWindow = Library:CreateWindow("XIT HBE")
+	local mainTab = mainWindow:AddTab("HBE")
+	local sizeTab = mainWindow:AddTab("Tamanhos")
+	local espTab = mainWindow:AddTab("ESP")
+	local ignoreTab = mainWindow:AddTab("Ignores")
+	local miscTab = mainWindow:AddTab("Extras")
+
+	local hbeGroup = mainTab:AddLeftGroupbox("Hitbox Extender")
+	local espGroup = espTab:AddLeftGroupbox("ESP")
+	local chamGroup = espTab:AddRightGroupbox("Chams")
+	local ignoreGroup = ignoreTab:AddLeftGroupbox("Ignores")
+	local collisionGroup = ignoreTab:AddRightGroupbox("Colisoes")
+	local miscGroup = miscTab:AddLeftGroupbox("Teclas")
+	local fixGroup = miscTab:AddRightGroupbox("Fixes")
+
+	hbeGroup:AddToggle("extenderToggled", { Text = "Ativar" }):OnChanged(updatePlayers)
+	hbeGroup:AddDropdown("extenderPartList", {
+		Text = "Partes do Corpo",
+		AllowNull = true,
+		Multi = true,
+		Values = { "Custom Part", "Head", "HumanoidRootPart", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg" },
+		Default = "HumanoidRootPart"
+	}):OnChanged(updatePlayers)
+	hbeGroup:AddInput("customPartName", { Text = "Nome Personalizado", Default = "HeadHB" }):OnChanged(updatePlayers)
+	hbeGroup:AddSlider("extenderTransparency", { Text = "Transparencia", Min = 0, Max = 1, Default = 0.5, Rounding = 2 }):OnChanged(updatePlayers)
+
+	local sizeGroup = sizeTab:AddLeftGroupbox("Tamanhos por Parte")
+	sizeGroup:AddLabel("Ajuste o tamanho de cada parte individualmente")
+
+	local partSizes = {
+		Head = "tamHead",
+		HumanoidRootPart = "tamHRP",
+		Torso = "tamTorso",
+		["Left Arm"] = "tamLeftArm",
+		["Right Arm"] = "tamRightArm",
+		["Left Leg"] = "tamLeftLeg",
+		["Right Leg"] = "tamRightLeg",
+		["Custom Part"] = "tamCustom"
+	}
+
+	local defaultSizes = {
+		Head = 10,
+		HumanoidRootPart = 10,
+		Torso = 10,
+		["Left Arm"] = 10,
+		["Right Arm"] = 10,
+		["Left Leg"] = 10,
+		["Right Leg"] = 10,
+		["Custom Part"] = 10
+	}
+
+	for _, partName in ipairs({ "Head", "HumanoidRootPart", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg", "Custom Part" }) do
+		local key = partSizes[partName]
+		local slider = sizeGroup:AddSlider(key, {
+			Text = partName,
+			Min = 1,
+			Max = 100,
+			Default = defaultSizes[partName],
+			Rounding = 1,
+			Suffix = " studs"
+		})
+		slider:OnChanged(updatePlayers)
 	end
-end)
 
--- Hitbox extender
+	local function getPartSize(partName)
+		if Toggles.extenderToggled.Value then
+			for _, v in pairs(Options.extenderPartList:GetActiveValues()) do
+				if string.match(partName, v) or (v == "Custom Part" and string.match(partName, Options.customPartName.Value)) or
+				(v == "Left Arm" and string.match(partName, "Left") and (string.match(partName, "Arm") or string.match(partName, "Hand"))) or
+				(v == "Right Arm" and string.match(partName, "Right") and (string.match(partName, "Arm") or string.match(partName, "Hand"))) or
+				(v == "Left Leg" and string.match(partName, "Left") and (string.match(partName, "Leg") or string.match(partName, "Foot"))) or
+				(v == "Right Leg" and string.match(partName, "Right") and (string.match(partName, "Leg") or string.match(partName, "Foot"))) then
+					local sizeKey = partSizes[v]
+					if sizeKey and Options[sizeKey] then
+						return Options[sizeKey].Value
+					end
+				end
+			end
+		end
+		return nil
+	end
 
-local function updatePlayers()
-	for _, idx in pairs(players) do
-		task.spawn(function()
-			idx:Update()
+	espGroup:AddToggle("espNameToggled", { Text = "Nome" }):AddColorPicker("espNameColor1", { Title = "Cor Preenchimento", Default = Color3.fromRGB(255, 255, 255) }):AddColorPicker("espNameColor2", { Title = "Cor Contorno", Default = Color3.fromRGB(0, 0, 0) })
+	Toggles.espNameToggled:OnChanged(updatePlayers)
+	Options.espNameColor1:OnChanged(updatePlayers)
+	Options.espNameColor2:OnChanged(updatePlayers)
+	espGroup:AddToggle("espNameUseTeamColor", { Text = "Usar Cor do Time" }):OnChanged(updatePlayers)
+	espGroup:AddDropdown("espNameType", { Text = "Tipo de Nome", AllowNull = false, Multi = false, Values = { "Display Name", "Account Name" }, Default = "Display Name" }):OnChanged(updatePlayers)
+
+	chamGroup:AddToggle("espHighlightToggled", { Text = "Chams" }):AddColorPicker("espHighlightColor1", { Title = "Cor Preenchimento", Default = Color3.fromRGB(0, 0, 0) }):AddColorPicker("espHighlightColor2", { Title = "Cor Contorno", Default = Color3.fromRGB(0, 0, 0) })
+	Toggles.espHighlightToggled:OnChanged(updatePlayers)
+	Options.espHighlightColor1:OnChanged(updatePlayers)
+	Options.espHighlightColor2:OnChanged(updatePlayers)
+	chamGroup:AddToggle("espHighlightUseTeamColor", { Text = "Usar Cor do Time" }):OnChanged(updatePlayers)
+	chamGroup:AddDropdown("espHighlightDepthMode", { Text = "Modo de Profundidade", AllowNull = false, Multi = false, Values = { "Occluded", "AlwaysOnTop" }, Default = "Occluded" }):OnChanged(updatePlayers)
+	chamGroup:AddSlider("espHighlightFillTransparency", { Text = "Transparencia Preenchimento", Min = 0, Max = 1, Default = 0.5, Rounding = 2 }):OnChanged(updatePlayers)
+	chamGroup:AddSlider("espHighlightOutlineTransparency", { Text = "Transparencia Contorno", Min = 0, Max = 1, Default = 0, Rounding = 2 }):OnChanged(updatePlayers)
+
+	miscGroup:AddLabel("Menu"):AddKeyPicker("menuKeybind", { Default = "Insert", NoUI = true, Text = "Tecla do Menu" })
+	miscGroup:AddLabel("Forcar Update"):AddKeyPicker("forceUpdateKeybind", { Default = "Home", NoUI = true, Text = "Tecla de Update" })
+	Options.forceUpdateKeybind:OnClick(updatePlayers)
+	Library.ToggleKeybind = Options.menuKeybind
+
+	ignoreGroup:AddToggle("extenderSitCheck", { Text = "Ignorar Sentados" }):OnChanged(updatePlayers)
+	ignoreGroup:AddToggle("extenderFFCheck", { Text = "Ignorar Forcefield" }):OnChanged(updatePlayers)
+	ignoreGroup:AddToggle("ignoreSelectedPlayersToggled", { Text = "Ignorar Jogadores" }):OnChanged(updatePlayers)
+	ignoreGroup:AddDropdown("ignorePlayerList", { Text = "Jogadores", AllowNull = true, Multi = true, Values = {} }):OnChanged(updatePlayers)
+	ignoreGroup:AddToggle("ignoreOwnTeamToggled", { Text = "Ignorar Proprio Time" }):OnChanged(updatePlayers)
+	ignoreGroup:AddToggle("ignoreSelectedTeamsToggled", { Text = "Ignorar Times" }):OnChanged(updatePlayers)
+	ignoreGroup:AddDropdown("ignoreTeamList", { Text = "Times", AllowNull = true, Multi = true, Values = {} }):OnChanged(updatePlayers)
+
+	collisionGroup:AddToggle("collisionsToggled", { Text = "Ativar Colisoes" }):OnChanged(updatePlayers)
+
+	SaveManager:BuildConfigSection(miscTab)
+	SaveManager:LoadAutoloadConfig()
+
+	local function updateList(list)
+		list:SetValues()
+		list:Display()
+	end
+
+	if game.GameId == 504234221 then
+		teamModule = require(ReplicatedStorage.Scripts.Modules.PlayerModule)
+	end
+	if game.GameId == 1934496708 then
+		teamModule = require(Workspace:WaitForChild("Teams"))
+	end
+
+	local function addPlayer(player)
+		table.insert(Options.ignorePlayerList.Values, player.Name)
+		updateList(Options.ignorePlayerList)
+		players[player] = {}
+		local playerIdx = players[player]
+		local playerChar = player.Character
+		local defaultProperties = {}
+
+		local function isTeammate()
+			if game.GameId == 718936923 then
+				if not lPlayer.Character or not playerChar or not playerChar:FindFirstChild("HumanoidRootPart") then return true end
+				return lPlayer.Character.HumanoidRootPart.Color == playerChar.HumanoidRootPart.Color
+			elseif game.PlaceId == 633284182 then
+				if not player:FindFirstChild("PlayerData") or not player.PlayerData:FindFirstChild("TeamValue") then return true end
+				return lPlayer.PlayerData.TeamValue.Value == player.PlayerData.TeamValue.Value
+			elseif game.PlaceId == 2029250188 then
+				if not lPlayer.Character or not playerChar then return true end
+				return lPlayer.Character.Parent == playerChar.Parent
+			elseif game.PlaceId == 2978450615 then
+				return getrenv()._G.PlayerProfiles.Data[lPlayer.Name].Team == getrenv()._G.PlayerProfiles.Data[player.Name].Team
+			elseif game.GameId == 1934496708 then
+				if Workspace.FriendlyFire.Value then return false end
+				return (not player.Team or player.Team.Name == "LOBBY" or lPlayer.Team.Name == "LOBBY" or player.Team.Name == "Admin" or lPlayer.Team == player.Team) or
+				teamModule[lPlayer.Team.Name] == teamModule[player.Team.Name] or
+				((teamModule[lPlayer.Team.Name] == "CI" and teamModule[player.Team.Name] == "CD") or
+				(teamModule[player.Team.Name] == "CI" and teamModule[lPlayer.Team.Name] == "CD"))
+			elseif game.PlaceId == 2622527242 then
+				if not player.Team or player.Team.Name == "Intro" or player.Team.Name == "Spectator" or player.Team.Name == "Not Playing" or lPlayer.Team == player.Team then return true end
+				local lPlayerTeamName = lPlayer.Team.Name
+				local playerTeamName = player.Team.Name
+				local selfTeam, playerTeam
+				if lPlayerTeamName == "Class-D Personnel" or lPlayerTeamName == "Chaos Insurgency" then selfTeam = "Chads" end
+				if lPlayerTeamName == "Facility Personnel" or lPlayerTeamName == "Security Department" or lPlayerTeamName == "Mobile Task Force" then selfTeam = "Crayon Eaters" end
+				if lPlayerTeamName == "SCPs" or lPlayerTeamName == "Serpent's Hand" then selfTeam = "Menaces to Society" end
+				if lPlayerTeamName == "Global Occult Coalition" then selfTeam = "Who?" end
+				if lPlayerTeamName == "Unusual Incidents Unit" then selfTeam = "Who2?" end
+				if playerTeamName == "Class-D Personnel" or playerTeamName == "Chaos Insurgency" then playerTeam = "Chads" end
+				if playerTeamName == "Facility Personnel" or playerTeamName == "Security Department" or playerTeamName == "Mobile Task Force" then playerTeam = "Crayon Eaters" end
+				if playerTeamName == "SCPs" or playerTeamName == "Serpent's Hand" then playerTeam = "Menaces to Society" end
+				if playerTeamName == "Global Occult Coalition" then playerTeam = "Who?" end
+				if playerTeamName == "Unusual Incidents Unit" then selfTeam = "Who2?" end
+				if selfTeam == "Who2?" or playerTeam == "Who2?" then
+					if selfTeam == "Crayon Eaters" or playerTeam == "Crayon Eaters" or selfTeam == "Who?" or playerTeam == "Who?" then
+						return true
+					end
+				end
+				return selfTeam == playerTeam
+			elseif game.PlaceId == 8770868695 then
+				if not lPlayer.Character or not playerChar or not player.Team or player.Team.Name == "Dead" or player.Team.Name == "Inactive" then return true end
+				return lPlayer.Character.Parent == playerChar.Parent
+			elseif game.PlaceId == 5884786982 then
+				if not lPlayer.Character or not playerChar then return true end
+				return lPlayer.Character.name ~= "Killer" and playerChar.Name ~= "Killer"
+			elseif game.GameId == 2162282815 then
+				if not player:FindFirstChild("SelectedTeam") then return true end
+				return player.SelectedTeam.Value == lPlayer.SelectedTeam.Value
+			elseif game.PlaceId == 1240644540 then
+				if not teamModule or not teamModule.IsPlayerSurvivor then return true end
+				return teamModule.IsPlayerSurvivor(nil, player) == true and teamModule.IsPlayerSurvivor(nil, lPlayer) == true
+			elseif game.PlaceId == 10236714118 then
+				if not player:FindFirstChild("PlayerData") or not player.PlayerData:FindFirstChild("Team") then return true end
+				return lPlayer.PlayerData.Team.Value == player.PlayerData.Team.Value
+			end
+			return lPlayer.Team == player.Team
+		end
+
+		local function isDead()
+			if not playerChar then return true end
+			local humanoid = playerChar:FindFirstChildWhichIsA("Humanoid")
+			if game.PlaceId == 6172932937 then
+				return player.ragdolled.Value
+			elseif game.GameId == 718936923 then
+				return playerChar:FindFirstChild("Dead") ~= nil
+			end
+			return humanoid and humanoid:GetState() == Enum.HumanoidStateType.Dead
+		end
+
+		local function isSitting()
+			local humanoid = playerChar:FindFirstChildWhichIsA("Humanoid")
+			return Toggles.extenderSitCheck.Value and humanoid ~= nil and humanoid.Sit == true
+		end
+
+		local function isFFed()
+			if not playerChar then return false end
+			if game.PlaceId == 4991214437 or game.PlaceId == 6652350934 then
+				return playerChar.Head.Material == Enum.Material.ForceField
+			end
+			local ff = playerChar:FindFirstChildWhichIsA("ForceField")
+			return Toggles.extenderFFCheck.Value and playerChar ~= nil and ff ~= nil and ff.Visible == true
+		end
+
+		local function isIgnored()
+			if not playerChar then return true end
+			return Toggles.ignoreOwnTeamToggled.Value and isTeammate() or
+			Toggles.ignoreSelectedTeamsToggled.Value and table.find(Options.ignoreTeamList:GetActiveValues(), tostring(player.Team)) or
+			Toggles.ignoreSelectedPlayersToggled.Value and table.find(Options.ignorePlayerList:GetActiveValues(), tostring(player.Name))
+		end
+
+		local debounce = false
+
+		local function setup(part)
+			defaultProperties[part.Name] = {}
+			local properties = defaultProperties[part.Name]
+			properties.Size = part.Size
+			properties.Transparency = part.Transparency
+			properties.Massless = part.Massless
+			properties.CanCollide = part.CanCollide
+			properties.CollisionGroupId = part.CollisionGroupId
+			local getSizeHook = part:AddGetHook("Size", properties.Size)
+			local getTransparencyHook = part:AddGetHook("Transparency", properties.Transparency)
+			local getMasslessHook = part:AddGetHook("Massless", properties.Massless)
+			local getCanCollideHook = part:AddGetHook("CanCollide", properties.CanCollide)
+			local setSizeHook = part:AddSetHook("Size", function(_, value)
+				properties.Size = value
+				getSizeHook:Modify("Size", properties.Size)
+				if Toggles.extenderToggled.Value then
+					local customSize = getPartSize(part.Name)
+					if customSize then
+						return Vector3.new(customSize, customSize, customSize)
+					end
+					return Vector3.new(Options.extenderSize.Value, Options.extenderSize.Value, Options.extenderSize.Value)
+				end
+				return properties.Size
+			end)
+			local setTransparencyHook = part:AddSetHook("Transparency", function(_, value)
+				properties.Transparency = value
+				getTransparencyHook:Modify("Transparency", properties.Transparency)
+				if Toggles.extenderToggled.Value then
+					return Options.extenderTransparency.Value
+				end
+				return properties.Transparency
+			end)
+			local setMasslessHook = part:AddSetHook("Massless", function(_, value)
+				properties.Massless = value
+				getMasslessHook:Modify("Massless", properties.Massless)
+				if Toggles.extenderToggled.Value then
+					if part.Name ~= "HumanoidRootPart" then
+						return true
+					end
+				end
+				return properties.Massless
+			end)
+			local setCanCollideHook = part:AddSetHook("CanCollide", function(_, value)
+				properties.CanCollide = value
+				getCanCollideHook:Modify("CanCollide", properties.CanCollide)
+				if Toggles.extenderToggled.Value and not Toggles.collisionsToggled.Value then
+					if part.Name == "Head" or part.Name == "HumanoidRootPart" then
+						return false
+					end
+				end
+				return properties.CanCollide
+			end)
+			local changed = part.Changed:Connect(function(property)
+				if debounce then return end
+				if properties[property] then
+					if properties[property] ~= part[property] then
+						properties[property] = part[property]
+					end
+					playerIdx:Update()
+				end
+			end)
+			part.Destroying:Connect(function()
+				getSizeHook:Remove()
+				getTransparencyHook:Remove()
+				getMasslessHook:Remove()
+				getCanCollideHook:Remove()
+				setSizeHook:Remove()
+				setTransparencyHook:Remove()
+				setMasslessHook:Remove()
+				setCanCollideHook:Remove()
+				changed:Disconnect()
+			end)
+		end
+
+		local function isActive(part)
+			local name = part.Name
+			for _, v in pairs(Options.extenderPartList:GetActiveValues()) do
+				if string.match(name, v) or (v == "Custom Part" and string.match(name, Options.customPartName.Value)) or
+				(v == "Left Arm" and string.match(name, "Left") and (string.match(name, "Arm") or string.match(name, "Hand"))) or
+				(v == "Right Arm" and string.match(name, "Right") and (string.match(name, "Arm") or string.match(name, "Hand"))) or
+				(v == "Left Leg" and string.match(name, "Left") and (string.match(name, "Leg") or string.match(name, "Foot"))) or
+				(v == "Right Leg" and string.match(name, "Right") and (string.match(name, "Leg") or string.match(name, "Foot"))) then
+					return true
+				end
+			end
+			return false
+		end
+
+		local function resize(part)
+			if not defaultProperties[part.Name] then
+				setup(part)
+			end
+			if Toggles.extenderToggled.Value and isActive(part) and not isIgnored() and not isSitting() and not isFFed() and not isDead() then
+				if part.Name ~= "HumanoidRootPart" then
+					part.Massless = true
+				end
+				if not Toggles.collisionsToggled.Value then
+					part.CanCollide = false
+				else
+					part.CanCollide = defaultProperties[part.Name].CanCollide
+				end
+				local customSize = getPartSize(part.Name)
+				local size = customSize or Options.extenderSize.Value
+				part.Size = Vector3.new(size, size, size)
+				part.Transparency = Options.extenderTransparency.Value
+				if part.Name == "Head" then
+					local face = part:FindFirstChild("face")
+					if face then
+						face.Transparency = Options.extenderTransparency.Value
+					end
+				end
+			else
+				part.Massless = defaultProperties[part.Name].Massless
+				part.CanCollide = defaultProperties[part.Name].CanCollide
+				part.Size = defaultProperties[part.Name].Size
+				part.Transparency = defaultProperties[part.Name].Transparency
+				if part.Name == "Head" then
+					local face = part:FindFirstChild("face")
+					if face then
+						face.Transparency = defaultProperties["Head"].Transparency
+					end
+				end
+			end
+		end
+
+		function playerIdx:Update()
+			if not playerChar then return end
+			debounce = true
+			for _, v in pairs(playerChar:GetChildren()) do
+				if v:IsA("BasePart") then
+					resize(v)
+				end
+			end
+			debounce = false
+		end
+
+		local function FindFirstChildMatching(parent, name)
+			if not parent then return nil end
+			for _,v in pairs(parent:GetChildren()) do
+				if string.match(v.Name, name) then
+					return v
+				end
+			end
+		end
+
+		local nameEsp = Drawing.new("Text"); nameEsp.Center = true; nameEsp.Outline = true
+		local chams = Instance.new("Highlight");chams.Parent = game:GetService("CoreGui")
+
+		function playerIdx:UpdateESP()
+			if not playerChar or isIgnored() or isDead() then nameEsp.Visible = false; chams.Enabled = false return end
+			if Toggles.espNameToggled.Value then
+				local target = FindFirstChildMatching(playerChar, "Torso")
+				if target then
+					local pos, vis = WorldToViewportPoint(Camera, target.Position)
+					if vis then
+						nameEsp.Text = Options.espNameType.Value == "Display Name" and player.DisplayName or player.Name
+						if Toggles.espNameUseTeamColor.Value then
+							nameEsp.Color = player.TeamColor.Color
+						else
+							nameEsp.Color = Options.espNameColor1.Value
+						end
+						nameEsp.OutlineColor = Options.espNameColor2.Value
+						nameEsp.Position = Vector2.new(pos.X, pos.Y)
+						nameEsp.Size = 1000 / pos.Z + 10
+						nameEsp.Visible = true
+					else
+						nameEsp.Visible = false
+					end
+				else
+					nameEsp.Visible = false
+				end
+			else
+				nameEsp.Visible = false
+			end
+			if Toggles.espHighlightToggled.Value then
+				chams.Adornee = playerChar
+				if Toggles.espHighlightUseTeamColor.Value then
+					chams.FillColor = player.TeamColor.Color
+					chams.OutlineColor = player.TeamColor.Color
+				else
+					chams.FillColor = Options.espHighlightColor1.Value
+					chams.OutlineColor = Options.espHighlightColor2.Value
+				end
+				chams.DepthMode = Enum.HighlightDepthMode[Options.espHighlightDepthMode.Value]
+				chams.FillTransparency = Options.espHighlightFillTransparency.Value
+				chams.OutlineTransparency = Options.espHighlightOutlineTransparency.Value
+				chams.Enabled = true
+			else
+				chams.Enabled = false
+			end
+		end
+
+		function playerIdx:DeleteVisuals()
+			nameEsp:Remove()
+			chams:Destroy()
+		end
+
+		local function WaitForFullChar(char)
+			local startTime = tick()
+			local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+			if not humanoid then
+				repeat
+					if char == nil then
+						return false
+					end
+					humanoid = char:FindFirstChildWhichIsA("Humanoid")
+					task.wait()
+				until humanoid or tick()-startTime >= 2
+			end
+			local loaded = false
+			startTime = tick()
+			repeat
+				local limbs = 0
+				for _, v in pairs(char:GetChildren()) do
+					if humanoid:GetLimb(v) ~= Enum.Limb.Unknown then
+						limbs += 1
+					end
+				end
+				if limbs == 6 or limbs == 15 then
+					loaded = true
+				end
+				task.wait()
+			until loaded or tick()-startTime >= 3
+			return true
+		end
+
+		player.CharacterAdded:Connect(function(character)
+			playerChar = character
+			defaultProperties = {}
+			if WaitForFullChar(character) then
+				playerIdx:Update()
+				local humanoid = character:FindFirstChildWhichIsA("Humanoid")
+				if humanoid then
+					humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+						if humanoid.Health <= 0 then
+							playerIdx:Update()
+						end
+					end)
+					humanoid.StateChanged:Connect(function(_, newState)
+						if newState == Enum.HumanoidStateType.Dead then
+							playerIdx:Update()
+						end
+					end)
+				end
+				if character:FindFirstChildWhichIsA("ForceField") then
+					playerIdx:Update()
+				end
+				character.ChildAdded:Connect(function(child)
+					if game.GameId == 718936923 then
+						if child.Name == "Dead" then
+							playerIdx:Update()
+							return
+						end
+					end
+					if child:IsA("ForceField") then
+						playerIdx:Update()
+					end
+				end)
+				character.ChildRemoved:Connect(function(child)
+					if child:IsA("ForceField") then
+						playerIdx:Update()
+					end
+				end)
+				if game.PlaceId == 4991214437 or game.PlaceId == 6652350934 then
+					local head = playerChar:FindFirstChild("Head")
+					head:GetPropertyChangedSignal("Material"):Connect(function()
+						playerIdx:Update()
+					end)
+				end
+			end
 		end)
-	end
-end
-
-local function addPlayer(player)
-	if player == lPlayer then return end
-	players[player] = {}
-	local idx = players[player]
-	local char = player.Character
-
-	local defaultProps = {}
-
-	local function resize(part)
-		if not defaultProps[part.Name] then
-			defaultProps[part.Name] = {
-				Size = part.Size,
-				Transparency = part.Transparency,
-				Massless = part.Massless,
-				CanCollide = part.CanCollide
-			}
+		player.CharacterRemoving:Connect(function()
+			if playerIdx then
+				defaultProperties = {}
+			end
+		end)
+		player:GetPropertyChangedSignal("Team"):Connect(function()
+			playerIdx:Update()
+		end)
+		if game.PlaceId == 6172932937 then
+			local ragdolled = player:WaitForChild("ragdolled")
+			ragdolled.Changed:Connect(function()
+				playerIdx:Update()
+			end)
 		end
-		if enabled then
-			part.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-			part.Transparency = hitboxTransp
-		else
-			part.Size = defaultProps[part.Name].Size
-			part.Transparency = defaultProps[part.Name].Transparency
+		if game.GameId == 1934496708 then
+			local ff = Workspace:WaitForChild("FriendlyFire")
+			ff.Changed:Connect(function()
+				playerIdx:Update()
+			end)
 		end
-	end
-
-	function idx:Update()
-		if not char then return end
-		for _, v in pairs(char:GetChildren()) do
-			if v:IsA("BasePart") then
-				resize(v)
+		if game.GameId == 2162282815 then
+			local mapFolder = Workspace:WaitForChild("MapFolder")
+			local gamePlayers = mapFolder:WaitForChild("Players")
+			for _,v in pairs(gamePlayers:GetChildren()) do
+				if v.Name == player.Name then
+					playerChar = v
+				end
+			end
+			gamePlayers.ChildAdded:Connect(function(v)
+				if v.Name == player.Name then
+					playerChar = v
+				end
+			end)
+		end
+		if game.PlaceId == 4991214437 or game.PlaceId == 6652350934 then
+			if playerChar then
+				local head = playerChar:FindFirstChild("Head")
+				head:GetPropertyChangedSignal("Material"):Connect(function()
+					playerIdx:Update()
+				end)
 			end
 		end
 	end
 
-	if char then
-		idx:Update()
+	local function removePlayer(player)
+		if not players[player] then return end
+		players[player]:DeleteVisuals()
+		table.remove(Options.ignorePlayerList.Values, table.find(Options.ignorePlayerList.Values, player.Name))
+		updateList(Options.ignorePlayerList)
+		players[player] = nil
 	end
 
-	player.CharacterAdded:Connect(function(c)
-		char = c
-		defaultProps = {}
-		task.wait(0.5)
-		idx:Update()
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player == lPlayer then
+			continue
+		end
+		addPlayer(player)
+	end
+	for _, team in pairs(Teams:GetTeams()) do
+		if team:IsA("Team") then
+			table.insert(Options.ignoreTeamList.Values, team.Name)
+			updateList(Options.ignoreTeamList)
+		end
+	end
+	Players.PlayerAdded:Connect(function(player)
+		addPlayer(player)
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		removePlayer(player)
+	end)
+	Teams.ChildAdded:Connect(function(team)
+		if team:IsA("Team") then
+			table.insert(Options.ignoreTeamList.Values, team.Name)
+			updateList(Options.ignoreTeamList)
+		end
+	end)
+	Teams.ChildRemoved:Connect(function(team)
+		if team:IsA("Team") then
+			table.remove(Options.ignoreTeamList.Values, table.find(Options.ignoreTeamList.Values, team.Name))
+			updateList(Options.ignoreTeamList)
+		end
 	end)
 
-	player.CharacterRemoving:Connect(function()
-		char = nil
-		defaultProps = {}
+	lPlayer:GetAttributeChangedSignal("Team"):Connect(function()
+		updatePlayers()
 	end)
-end
+	lPlayer.CharacterAdded:Connect(function()
+		updatePlayers()
+	end)
 
-for _, p in ipairs(Players:GetPlayers()) do
-	addPlayer(p)
-end
+	fixGroup:AddButton("Consertar Jogadores", function()
+		local found = 0
+		for _, player in ipairs(Players:GetPlayers()) do
+			if players[player] or player == lPlayer then continue else
+				found = found + 1
+				addPlayer(player)
+			end
+		end
+		if found > 0 then
+			Library:Notify("Encontrados " .. found .. " jogadores")
+		else
+			Library:Notify("Nenhum jogador faltando")
+		end
+		updatePlayers()
+	end):AddToolTip("Tenta encontrar jogadores nao detectados pelo HBE")
 
-Players.PlayerAdded:Connect(addPlayer)
+	if game.PlaceId == 111311599 then
+		local anticheat = game:GetService("ReplicatedFirst")["Serverbased AntiCheat"]
+		local sValue = lPlayer:WaitForChild("SValue")
+		local function constructAnticheatString()
+			return "CS-" .. math.random(11111, 99999) .. "-" .. math.random(1111, 9999) .. "-" .. math.random(111111, 999999) .. math.random(1111111, 9999999) .. (sValue.Value * 6) ^ 2 + 18
+		end
+		task.spawn(function()
+			while true do
+				task.wait(2)
+				game:GetService("ReplicatedStorage").ACDetect:FireServer(sValue.Value, constructAnticheatString())
+			end
+		end)
+		anticheat.Disabled = true
+	end
 
-end) -- pcall
+	getgenv().XitLoaded = true
+	updatePlayers()
+	Library:Notify("XIT HBE Carregado!")
+	Library:Notify("Pressione " .. Library.ToggleKeybind.Value .. " para abrir o menu")
+end)
 
 if not ok then
-	warn("XIT Error:", err)
+	warn("XIT ERRO:", err)
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "XitError"
 	gui.ResetOnSpawn = false
 	gui.Parent = game:GetService("CoreGui")
-	local f = Instance.new("Frame")
-	f.Size = UDim2.new(0, 400, 0, 150)
-	f.Position = UDim2.new(0.5, -200, 0.5, -75)
-	f.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	f.BorderSizePixel = 0
-	f.Parent = gui
-	local t = Instance.new("TextLabel")
-	t.Size = UDim2.new(1, -20, 1, -20)
-	t.Position = UDim2.new(0, 10, 0, 10)
-	t.BackgroundTransparency = 1
-	t.TextColor3 = Color3.fromRGB(255, 100, 100)
-	t.TextScaled = true
-	t.TextWrapped = true
-	t.Text = "XIT Error:\n" .. tostring(err)
-	t.Font = Enum.Font.Code
-	t.Parent = f
-	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(0, 80, 0, 30)
-	b.Position = UDim2.new(0.5, -40, 1, -40)
-	b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-	b.TextColor3 = Color3.fromRGB(255, 255, 255)
-	b.Text = "OK"
-	b.Parent = f
-	b.MouseButton1Click:Connect(function() gui:Destroy() end)
+	local l = Instance.new("TextLabel")
+	l.Size = UDim2.new(0, 400, 0, 100)
+	l.Position = UDim2.new(0.5, -200, 0.5, -50)
+	l.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	l.TextColor3 = Color3.fromRGB(255, 50, 50)
+	l.TextScaled = true
+	l.Text = "XIT ERRO: " .. tostring(err)
+	l.Font = Enum.Font.SourceSans
+	l.Parent = gui
 end
