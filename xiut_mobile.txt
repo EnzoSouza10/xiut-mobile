@@ -125,6 +125,7 @@ local function criarSlider(txt, min, max, default, callback)
 	barraBg.Position = UDim2.new(0, 5, 0, 22)
 	barraBg.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
 	barraBg.BorderSizePixel = 0
+	barraBg.Active = true
 	barraBg.Parent = bg
 
 	local preenchimento = Instance.new("Frame")
@@ -144,14 +145,22 @@ local function criarSlider(txt, min, max, default, callback)
 		if callback then callback(valorAtual) end
 	end
 
-	barraBg.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			dragging = true
-			atualizar(input)
+	UserInputService.InputBegan:Connect(function(input, gpe)
+		if gpe then return end
+		if dragging then return end
+		if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+			local pos = Vector2.new(input.Position.X, input.Position.Y)
+			if barraBg.AbsolutePosition.Y <= pos.Y and pos.Y <= barraBg.AbsolutePosition.Y + barraBg.AbsoluteSize.Y then
+				if barraBg.AbsolutePosition.X - 10 <= pos.X and pos.X <= barraBg.AbsolutePosition.X + barraBg.AbsoluteSize.X + 10 then
+					dragging = true
+					atualizar(input)
+				end
+			end
 		end
 	end)
 
-	barraBg.InputEnded:Connect(function(input)
+	UserInputService.InputEnded:Connect(function(input, gpe)
+		if gpe then return end
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = false
 		end
